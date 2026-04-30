@@ -28,11 +28,24 @@
           <label for="emailInput">Konto</label>
           <input id="emailInput" type="email" autocomplete="email" placeholder="din.epost@sjukhus.se" />
           <button class="button primary" type="submit">Skapa/logga in</button>
-          <button class="button icon-text" id="seedButton" type="button" title="Återställ demo-patienter">
-            Demo
+          <button class="button icon-text" id="seedButton" type="button" title="Ladda fem demo-patienter">
+            Ladda demo
+          </button>
+          <button class="button ghost" id="signOutButton" type="button">
+            Logga ut
           </button>
         </form>
       </header>
+
+      <section class="login-gate" id="loginGate">
+        <div>
+          <h2>Logga in med e-post för att öppna akutdashboarden</h2>
+          <p>
+            Patienter, timers, checklistor och formulärutkast sparas under kontot du anger.
+            Använd inte riktiga personnummer i prototypen.
+          </p>
+        </div>
+      </section>
 
       <main class="workspace">
         <section class="command-panel">

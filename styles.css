@@ -185,6 +185,12 @@ button {
   background: #1b75d0;
 }
 
+.button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .button.ghost,
 .button.icon-text {
   color: #eaf5f5;
@@ -192,11 +198,58 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.button.danger {
+  width: 100%;
+  color: #fff;
+  background: var(--red);
+}
+
+.login-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 330px;
+  margin-top: 14px;
+  padding: 28px;
+  color: #eaf5f5;
+  text-align: center;
+  background:
+    linear-gradient(135deg, rgba(47, 128, 237, 0.18), transparent 44%),
+    rgba(13, 24, 28, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.login-gate[hidden] {
+  display: none;
+}
+
+.login-gate h2 {
+  margin: 0;
+  font-size: clamp(1.55rem, 3vw, 2.45rem);
+}
+
+.login-gate p {
+  max-width: 680px;
+  margin: 10px auto 0;
+  color: #a7bdc1;
+  line-height: 1.55;
+}
+
+.login-gate.needs-attention {
+  animation: gatePulse 900ms ease;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   margin-top: 14px;
+}
+
+.is-locked .workspace {
+  display: none;
 }
 
 .command-panel,
@@ -908,6 +961,11 @@ button {
   border-radius: var(--radius);
 }
 
+.danger-section {
+  border-color: #ffc9c9;
+  background: #fff7f7;
+}
+
 .section-title {
   display: flex;
   align-items: center;
@@ -1257,6 +1315,17 @@ textarea + .voice-button,
   }
   50% {
     box-shadow: 0 0 0 8px rgba(229, 72, 77, 0.2);
+  }
+}
+
+@keyframes gatePulse {
+  0%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  50% {
+    border-color: rgba(229, 72, 77, 0.85);
+    box-shadow: 0 0 0 5px rgba(229, 72, 77, 0.14), var(--shadow);
   }
 }
 

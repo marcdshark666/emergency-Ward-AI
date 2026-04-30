@@ -1,6 +1,5 @@
 const STORAGE_VERSION = "emergency-ward-ai-v1";
 const ACCOUNT_KEY = `${STORAGE_VERSION}:active-account`;
-const DEMO_ACCOUNT = "demo@akut.local";
 const todayKey = new Date().toISOString().slice(0, 10);
 
 const riskOrder = { green: 1, yellow: 2, orange: 3, red: 4 };
@@ -51,6 +50,7 @@ const elements = {
   hospitalMap: document.querySelector("#hospitalMap"),
   avatarLayer: document.querySelector("#avatarLayer"),
   patientGrid: document.querySelector("#patientGrid"),
+  loginGate: document.querySelector("#loginGate"),
   patientModal: document.querySelector("#patientModal"),
   patientForm: document.querySelector("#patientForm"),
   openAddPatient: document.querySelector("#openAddPatient"),
@@ -62,10 +62,13 @@ const elements = {
   riskFilter: document.querySelector("#riskFilter"),
   sceneLegend: document.querySelector("#sceneLegend"),
   seedButton: document.querySelector("#seedButton"),
+  signOutButton: document.querySelector("#signOutButton"),
 };
 
+const savedAccount = localStorage.getItem(ACCOUNT_KEY) || "";
+
 const state = {
-  account: localStorage.getItem(ACCOUNT_KEY) || DEMO_ACCOUNT,
+  account: savedAccount === "demo@akut.local" ? "" : savedAccount,
   patients: [],
   selectedPatientId: "",
   riskFilter: "all",
@@ -551,11 +554,17 @@ function createDemoPatients() {
 }
 
 function persist() {
+  if (!state.account) return;
   localStorage.setItem(ACCOUNT_KEY, state.account);
   localStorage.setItem(storageKey(), JSON.stringify(state.patients));
 }
 
 function loadPatients() {
+  if (!state.account) {
+    state.patients = [];
+    return;
+  }
+
   const raw = localStorage.getItem(storageKey());
   if (!raw) {
     state.patients = createDemoPatients();
@@ -581,6 +590,10 @@ function loadPatients() {
 }
 
 function resetDemoData() {
+  if (!state.account) {
+    showLoginRequired();
+    return;
+  }
   state.patients = createDemoPatients();
   state.selectedPatientId = "";
   persist();
@@ -599,6 +612,11 @@ function patientHasOverdue(patient) {
 }
 
 function updatePatient(patientId, updater) {
+  if (!state.account) {
+    showLoginRequired();
+    return;
+  }
+
   state.patients = state.patients.map((patient) => {
     if (patient.id !== patientId) return patient;
     const next = updater({ ...patient });
@@ -628,6 +646,7 @@ function fillFormFromDraft() {
 }
 
 function saveFormDraft() {
+  if (!state.account) return;
   const values = serializeForm(elements.patientForm);
   localStorage.setItem(draftKey(), JSON.stringify(values));
 }
@@ -689,6 +708,11 @@ function patientFromForm(form) {
 }
 
 function addPatientFromForm(form) {
+  if (!state.account) {
+    showLoginRequired();
+    return;
+  }
+
   const patient = patientFromForm(form);
   const analysis = analyzePatient(patient);
   const flowStatus = analysis.risk === "red" || analysis.risk === "orange" ? "acute" : analysis.risk === "green" ? "near" : "monitoring";
@@ -724,9 +748,14 @@ function renderLegend() {
 function renderStats() {
   const active = state.patients.filter((patient) => !["home", "closed"].includes(patient.flowStatus)).length;
   const overdue = state.patients.filter(patientHasOverdue).length;
+  const isLoggedIn = Boolean(state.account);
+  document.body.classList.toggle("is-locked", !isLoggedIn);
+  elements.loginGate.hidden = isLoggedIn;
+  elements.seedButton.disabled = !isLoggedIn;
+  elements.signOutButton.hidden = !isLoggedIn;
   elements.todayLabel.textContent = new Intl.DateTimeFormat("sv-SE", { dateStyle: "full" }).format(new Date());
-  elements.accountLabel.textContent = state.account === DEMO_ACCOUNT ? "Demo-läge" : state.account;
-  elements.emailInput.value = state.account === DEMO_ACCOUNT ? "" : state.account;
+  elements.accountLabel.textContent = isLoggedIn ? state.account : "Logga in krävs";
+  elements.emailInput.value = isLoggedIn ? state.account : "";
   elements.activeCount.textContent = active;
   elements.overdueCount.textContent = overdue;
 }
@@ -943,6 +972,14 @@ function renderPatientDetail(patient) {
       </select>
     </section>
 
+    <section class="detail-section danger-section">
+      <div class="section-title">
+        <h3>Patientpost</h3>
+        <span>Tar bort från dagens lista och 3D-vyn</span>
+      </div>
+      <button class="button danger" id="deletePatientButton" type="button">Ta bort patient</button>
+    </section>
+
     <section class="detail-section">
       <div class="section-title">
         <h3>Preliminär analys</h3>
@@ -999,6 +1036,10 @@ function renderPatientDetail(patient) {
     updatePatient(patient.id, (next) => ({ ...next, flowStatus: event.target.value }));
   });
 
+  elements.patientDetail.querySelector("#deletePatientButton").addEventListener("click", () => {
+    deletePatient(patient.id);
+  });
+
   elements.patientDetail.querySelectorAll(".recommendation-row").forEach((row) => {
     const recId = row.dataset.recId;
     row.querySelector('[data-action="toggle-rec"]').addEventListener("change", (event) => {
@@ -1012,6 +1053,25 @@ function renderPatientDetail(patient) {
       if (Number.isFinite(dueAt)) updateRecommendation(patient.id, recId, { dueAt });
     });
   });
+}
+
+function deletePatient(patientId) {
+  const patient = state.patients.find((item) => item.id === patientId);
+  if (!patient) return;
+
+  const confirmed = window.confirm(
+    `Ta bort ${patient.name} från dagens patientlista för kontot ${state.account}? Detta tar också bort figuren i 3D-vyn.`
+  );
+
+  if (!confirmed) return;
+
+  state.patients = state.patients.filter((item) => item.id !== patientId);
+  if (state.selectedPatientId === patientId) {
+    state.selectedPatientId = "";
+  }
+  persist();
+  closePatientDetail();
+  render();
 }
 
 function updateRecommendation(patientId, recId, changes) {
@@ -1170,14 +1230,35 @@ function bindEvents() {
   elements.accountForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const email = elements.emailInput.value.trim().toLowerCase();
-    state.account = email || DEMO_ACCOUNT;
+    if (!email) {
+      showLoginRequired();
+      elements.emailInput.focus();
+      return;
+    }
+
+    state.account = email;
     loadPatients();
     render();
   });
 
   elements.seedButton.addEventListener("click", resetDemoData);
+  elements.signOutButton.addEventListener("click", () => {
+    persist();
+    state.account = "";
+    state.patients = [];
+    state.selectedPatientId = "";
+    localStorage.removeItem(ACCOUNT_KEY);
+    closePatientDetail();
+    render();
+  });
 
   elements.openAddPatient.addEventListener("click", () => {
+    if (!state.account) {
+      showLoginRequired();
+      elements.emailInput.focus();
+      return;
+    }
+
     elements.patientForm.reset();
     fillFormFromDraft();
     elements.patientModal.showModal();
@@ -1209,10 +1290,16 @@ function bindEvents() {
   });
 }
 
+function showLoginRequired() {
+  elements.loginGate.hidden = false;
+  elements.loginGate.classList.add("needs-attention");
+  window.setTimeout(() => elements.loginGate.classList.remove("needs-attention"), 900);
+}
+
 function init() {
   bindEvents();
   enhanceVoiceInputs();
-  loadPatients();
+  if (state.account) loadPatients();
   render();
   window.setInterval(() => {
     state.now = Date.now();
