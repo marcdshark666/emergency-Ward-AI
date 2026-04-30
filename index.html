@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Emergency Ward AI</title>
+    <meta
+      name="description"
+      content="Prototyp för akutflöde, patientmonitorering, NEWS2, timers och 3D-sjukhusvy."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+          </div>
+          <div>
+            <h1>Emergency Ward AI</h1>
+            <p>Akutflöde, NEWS2, timers och visuell sjukhusöversikt</p>
+          </div>
+        </div>
+
+        <form class="account-form" id="accountForm">
+          <label for="emailInput">Konto</label>
+          <input id="emailInput" type="email" autocomplete="email" placeholder="din.epost@sjukhus.se" />
+          <button class="button primary" type="submit">Skapa/logga in</button>
+          <button class="button icon-text" id="seedButton" type="button" title="Återställ demo-patienter">
+            Demo
+          </button>
+        </form>
+      </header>
+
+      <main class="workspace">
+        <section class="command-panel">
+          <div class="status-strip">
+            <div>
+              <span class="label">Inloggad</span>
+              <strong id="accountLabel">Demo-läge</strong>
+            </div>
+            <div>
+              <span class="label">Datum</span>
+              <strong id="todayLabel"></strong>
+            </div>
+            <div>
+              <span class="label">Aktiva patienter</span>
+              <strong id="activeCount">0</strong>
+            </div>
+            <div>
+              <span class="label">Försenade timers</span>
+              <strong id="overdueCount">0</strong>
+            </div>
+          </div>
+
+          <div class="safety-note">
+            Beslutsstöd: analysen är preliminär, ger inga definitiva diagnoser och ersätter inte kliniskt omdöme.
+            Bekräfta alltid åtgärder manuellt.
+          </div>
+        </section>
+
+        <section class="scene-panel" aria-label="Visuell sjukhusvy">
+          <div class="scene-head">
+            <div>
+              <h2>3D-sjukhusvy</h2>
+              <p>Patienter flyttas mellan akut, monitorering, närakut och hemgång när status ändras.</p>
+            </div>
+            <div class="scene-legend" id="sceneLegend"></div>
+          </div>
+
+          <div class="hospital-viewport" id="hospitalViewport">
+            <div class="hospital-map" id="hospitalMap">
+              <div class="zone zone-acute" data-zone="acute">
+                <span>Röd akut</span>
+                <div class="bed-row"></div>
+                <div class="wall left-wall"></div>
+                <div class="wall back-wall"></div>
+              </div>
+              <div class="zone zone-monitor" data-zone="monitoring">
+                <span>Grön monitorering</span>
+                <div class="monitor-line"></div>
+                <div class="wall back-wall"></div>
+              </div>
+              <div class="zone zone-near" data-zone="near">
+                <span>Blå närakut</span>
+                <div class="clinic-desk"></div>
+                <div class="wall back-wall"></div>
+              </div>
+              <div class="zone zone-home" data-zone="home">
+                <span>Hemgång</span>
+                <div class="home-house">
+                  <i></i>
+                </div>
+              </div>
+              <div class="corridor">
+                <span>Akutkorridor</span>
+              </div>
+              <div class="avatar-layer" id="avatarLayer"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="patient-board">
+          <div class="board-toolbar">
+            <div>
+              <h2>Dagens patienter</h2>
+              <p id="boardSubtitle">Klicka på patient eller avatar för att öppna detaljpanelen.</p>
+            </div>
+            <div class="toolbar-actions">
+              <label class="select-label">
+                Filter
+                <select id="riskFilter">
+                  <option value="all">Alla risknivåer</option>
+                  <option value="red">Röd</option>
+                  <option value="orange">Orange</option>
+                  <option value="yellow">Gul</option>
+                  <option value="green">Grön</option>
+                </select>
+              </label>
+              <button class="button primary" id="openAddPatient" type="button">Lägg till patient</button>
+            </div>
+          </div>
+          <div class="patient-grid" id="patientGrid"></div>
+        </section>
+      </main>
+    </div>
+
+    <aside class="detail-drawer" id="detailDrawer" aria-hidden="true">
+      <div class="drawer-card">
+        <button class="close-button" id="closeDrawer" type="button" aria-label="Stäng patientpanel">×</button>
+        <div id="patientDetail"></div>
+      </div>
+    </aside>
+
+    <dialog class="patient-modal" id="patientModal">
+      <form class="patient-form" id="patientForm" method="dialog">
+        <div class="modal-head">
+          <div>
+            <h2>Lägg till patient</h2>
+            <p>Fyll i triage, status, NEWS2-parametrar och labb. Prototypen räknar NEWS2 och skapar beslutstöd.</p>
+          </div>
+          <button class="close-button" id="closePatientModal" type="button" aria-label="Stäng formulär">×</button>
+        </div>
+
+        <div class="form-grid">
+          <section class="form-section">
+            <h3>Identitet och sökorsak</h3>
+            <label>Namn eller patient-ID <input name="name" required placeholder="t.ex. Patient A-104" /></label>
+            <label>Kön
+              <select name="sex">
+                <option>Kvinna</option>
+                <option>Man</option>
+                <option>Annat/okänt</option>
+              </select>
+            </label>
+            <label>Ålder <input name="age" type="number" min="0" max="120" required /></label>
+            <label>Sökorsak/symtom <input name="complaint" required placeholder="Bröstsmärta, dyspné, buksmärta..." /></label>
+            <label>Kort anamnes <textarea name="history" rows="4"></textarea></label>
+            <label>Manuell riskbedömning
+              <select name="manualRisk">
+                <option value="">Automatisk</option>
+                <option value="green">Grön</option>
+                <option value="yellow">Gul</option>
+                <option value="orange">Orange</option>
+                <option value="red">Röd</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="form-section">
+            <h3>NEWS2 vitalparametrar</h3>
+            <div class="compact-grid">
+              <label>AF <input name="rr" type="number" min="0" placeholder="18" /></label>
+              <label>Saturation <input name="sat" type="number" min="0" max="100" placeholder="97" /></label>
+              <label>Syrgas
+                <select name="oxygen">
+                  <option value="false">Nej</option>
+                  <option value="true">Ja</option>
+                </select>
+              </label>
+              <label>Temp <input name="temp" type="number" step="0.1" placeholder="37.1" /></label>
+              <label>SBT <input name="sbp" type="number" placeholder="128" /></label>
+              <label>Puls <input name="pulse" type="number" placeholder="82" /></label>
+            </div>
+            <label>Medvetandegrad
+              <select name="consciousness">
+                <option>Alert</option>
+                <option>Ny konfusion</option>
+                <option>Reagerar på tilltal</option>
+                <option>Reagerar på smärta</option>
+                <option>Ej kontaktbar</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="form-section">
+            <h3>Statusfynd</h3>
+            <label>AT <input name="at" /></label>
+            <label>Hjärta <input name="heart" /></label>
+            <label>Lungor <input name="lungs" /></label>
+            <label>Buk <input name="abdomen" /></label>
+            <label>Neurologi <input name="neuro" /></label>
+            <label>Hud <input name="skin" /></label>
+            <label>Smärta <input name="pain" /></label>
+            <label>Övrigt <textarea name="otherStatus" rows="3"></textarea></label>
+          </section>
+
+          <section class="form-section labs-section">
+            <h3>Labbprover</h3>
+            <div class="compact-grid">
+              <label>Hb <input name="hb" type="number" /></label>
+              <label>LPK <input name="wbc" type="number" step="0.1" /></label>
+              <label>TPK <input name="platelets" type="number" /></label>
+              <label>CRP <input name="crp" type="number" /></label>
+              <label>Na <input name="na" type="number" /></label>
+              <label>K <input name="k" type="number" step="0.1" /></label>
+              <label>Kreatinin <input name="creatinine" type="number" /></label>
+              <label>eGFR <input name="egfr" type="number" /></label>
+              <label>Glukos <input name="glucose" type="number" step="0.1" /></label>
+              <label>Laktat <input name="lactate" type="number" step="0.1" /></label>
+              <label>Troponin <input name="troponin" type="number" /></label>
+              <label>D-dimer <input name="ddimer" type="number" /></label>
+            </div>
+            <label>Leverprover <input name="liver" placeholder="ALAT/ALP/Bil" /></label>
+            <label>Blodgas <input name="bloodGas" placeholder="pH, pCO2, BE..." /></label>
+            <label>Urinsticka <input name="urine" /></label>
+            <label>Annat fritt labb <textarea name="otherLab" rows="3"></textarea></label>
+          </section>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button ghost" id="cancelPatient" type="button">Avbryt</button>
+          <button class="button primary" value="submit" type="submit">Skapa patient</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
