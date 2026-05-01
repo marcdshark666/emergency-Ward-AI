@@ -21,6 +21,25 @@ const flowStatuses = [
   { id: "closed", label: "Avslutad", zone: "home" },
 ];
 
+const timerPresets = [
+  { id: "vitals15", category: "Observation", label: "Nya vitalparametrar", minutes: 15 },
+  { id: "news60", category: "Observation", label: "Ny NEWS2-bedömning", minutes: 60 },
+  { id: "ekg10", category: "Undersökning", label: "Beställ/upprepa EKG", minutes: 10 },
+  { id: "ct45", category: "Undersökning", label: "CT/röntgen-beslut", minutes: 45 },
+  { id: "lactate120", category: "Labb", label: "Upprepa laktat", minutes: 120 },
+  { id: "fluid20", category: "Behandling", label: "Vätskebedömning", minutes: 20 },
+  { id: "pain30", category: "Behandling", label: "Smärtutvärdering", minutes: 30 },
+  { id: "consult30", category: "Konsultation", label: "Kontakta konsult", minutes: 30 },
+];
+
+const staffTeam = [
+  { id: "er_doctor", label: "Akutläkare", short: "AK", color: "#e5484d", timer: "Läkarkontroll", minutes: 15 },
+  { id: "nurse", label: "Sjuksköterska", short: "SSK", color: "#2f80ed", timer: "Omvårdnad/nya vitalparametrar", minutes: 20 },
+  { id: "surgeon", label: "Kirurg", short: "KIR", color: "#f97316", timer: "Kirurgkonsult", minutes: 30 },
+  { id: "anesthesia", label: "Anestesiolog", short: "ANE", color: "#8b5cf6", timer: "Anestesi/IVA-bedömning", minutes: 15 },
+  { id: "cardiology", label: "Kardiolog", short: "KAR", color: "#22a06b", timer: "Kardiolog/HIA-bedömning", minutes: 30 },
+];
+
 const labLabels = {
   hb: "Hb",
   wbc: "LPK",
@@ -40,6 +59,153 @@ const labLabels = {
   otherLab: "Annat labb",
 };
 
+const parameterInfo = {
+  age: {
+    title: "Ålder",
+    normal: "Ingen NEWS2-poäng, men hög/låg ålder påverkar klinisk risk.",
+    danger: "Skör äldre patient, spädbarn eller kraftig åldersrelaterad risk kräver extra klinisk värdering.",
+    meaning: "Patientens ålder används som kontext för prioritering, läkemedel och differentialdiagnoser.",
+  },
+  rr: {
+    title: "AF - andningsfrekvens",
+    normal: "12-20 andetag/min hos vuxen.",
+    danger: "<=8 eller >=25/min ger NEWS2 3 poäng och kan tala för akut svikt.",
+    meaning: "Snabb eller långsam andning kan spegla hypoxi, sepsis, smärta, acidos eller CNS-påverkan.",
+  },
+  sat: {
+    title: "Saturation",
+    normal: "Vanligen 96-100% utan syrgas, men mål kan vara lägre vid KOL/CO2-retention.",
+    danger: "<=91% ger NEWS2 3 poäng. Ihållande hypoxi kräver snabb bedömning.",
+    meaning: "Syremättnad visar hur väl blodet syresätts.",
+  },
+  oxygen: {
+    title: "Syrgasbehov",
+    normal: "Ingen tillförd syrgas vid stabil syresättning.",
+    danger: "Nytt eller ökande syrgasbehov är en varningssignal och ger NEWS2 2 poäng.",
+    meaning: "Visar om patienten behöver extra oxygen för att hålla acceptabel saturation.",
+  },
+  temp: {
+    title: "Temperatur",
+    normal: "Cirka 36.1-38.0 °C.",
+    danger: "<=35.0 °C eller >39.0 °C är allvarliga avvikelser; feber med påverkan kan tala för infektion/sepsis.",
+    meaning: "Temperatur hjälper att bedöma infektion, inflammation, hypotermi och behandlingssvar.",
+  },
+  sbp: {
+    title: "Systoliskt blodtryck",
+    normal: "Ofta cirka 111-219 mmHg i NEWS2-skalan.",
+    danger: "<=90 mmHg eller >=220 mmHg ger NEWS2 3 poäng och kan kräva akut åtgärd.",
+    meaning: "Speglar cirkulation, chockrisk, blödning, dehydrering eller hypertensiv kris.",
+  },
+  pulse: {
+    title: "Puls",
+    normal: "51-90 slag/min i NEWS2-skalan.",
+    danger: "<=40 eller >=131/min ger NEWS2 3 poäng. Takykardi kan vara smärta, sepsis, blödning eller arytmi.",
+    meaning: "Hjärtfrekvens och cirkulatorisk stress.",
+  },
+  consciousness: {
+    title: "Medvetandegrad",
+    normal: "Alert/vaken och orienterad.",
+    danger: "Ny konfusion, reagerar på tilltal/smärta eller ej kontaktbar ger NEWS2 3 poäng.",
+    meaning: "Påverkat medvetande kan signalera hypoxi, stroke, sepsis, metabol rubbning eller intoxikation.",
+  },
+  hb: {
+    title: "Hb",
+    normal: "Ungefär 120-160 g/L beroende på kön/lab.",
+    danger: "<90 g/L eller snabb Hb-sänkning kan tala för blödning eller allvarlig anemi.",
+    meaning: "Mängd hemoglobin och syrebärande kapacitet.",
+  },
+  wbc: {
+    title: "LPK",
+    normal: "Cirka 3.5-8.8 x10^9/L.",
+    danger: ">15 eller <3 kan vara varningssignal vid infektion, sepsis eller benmärgspåverkan.",
+    meaning: "Vita blodkroppar, ofta kopplat till infektion/inflammation.",
+  },
+  platelets: {
+    title: "TPK",
+    normal: "Cirka 150-400 x10^9/L.",
+    danger: "<100 ökar blödnings-/sjukdomsmisstanke; mycket höga värden kan vara trombosrisk i rätt kontext.",
+    meaning: "Trombocyter/blodplättar, viktiga för koagulation.",
+  },
+  crp: {
+    title: "CRP",
+    normal: "Ofta <5 mg/L.",
+    danger: ">80 är tydligt förhöjt; >180 kan tala för kraftig inflammation/infektion.",
+    meaning: "Inflammationsmarkör, måste tolkas med symtom och tidförlopp.",
+  },
+  na: {
+    title: "Natrium",
+    normal: "135-145 mmol/L.",
+    danger: "<130 eller >150 kan ge neurologiska symtom och kräver aktiv bedömning.",
+    meaning: "Viktig elektrolyt för vätske- och nervfunktion.",
+  },
+  k: {
+    title: "Kalium",
+    normal: "3.5-5.0 mmol/L.",
+    danger: "<3.0 eller >5.8 kan ge arytmirisk, särskilt med EKG-förändringar.",
+    meaning: "Elektrolyt med stor betydelse för hjärtrytm och muskelfunktion.",
+  },
+  creatinine: {
+    title: "Kreatinin",
+    normal: "Varierar med kön/muskelmassa, ofta cirka 45-105 µmol/L.",
+    danger: ">150 eller snabb stegring talar för njurpåverkan/dehydrering/chockrisk.",
+    meaning: "Njurfunktion och vätskestatus.",
+  },
+  egfr: {
+    title: "eGFR",
+    normal: ">60 ml/min/1.73 m² är oftast acceptabelt, beroende på ålder.",
+    danger: "<45 talar för nedsatt njurfunktion; <30 påverkar läkemedel/kontrast och inläggningsbeslut.",
+    meaning: "Beräknad njurfiltration.",
+  },
+  glucose: {
+    title: "Glukos",
+    normal: "Cirka 4-8 mmol/L akut, beroende på situation.",
+    danger: "<3.5 eller >18 mmol/L kräver åtgärd/uppföljning.",
+    meaning: "Blodsocker, viktigt vid medvetandepåverkan, infektion och diabetes.",
+  },
+  lactate: {
+    title: "Laktat",
+    normal: "Ofta <2.0 mmol/L.",
+    danger: ">=2.5 är varningssignal; >=4 är allvarligt och kan tala för chock/sepsis/hypoperfusion.",
+    meaning: "Markör för vävnadsstress och otillräcklig perfusion.",
+  },
+  troponin: {
+    title: "Troponin",
+    normal: "Beror på metod, ofta lågt/under beslutsgräns.",
+    danger: "Förhöjt eller stigande/fallande troponin kan tala för myokardskada/AKS.",
+    meaning: "Hjärtmuskelmarkör som måste tolkas med EKG, symtom och dynamik.",
+  },
+  ddimer: {
+    title: "D-dimer",
+    normal: "Ofta <0.5 mg/L FEU, åldersjustering kan användas.",
+    danger: "Förhöjt är ospecifikt men kan stödja utredning för trombos/lungemboli i rätt riskprofil.",
+    meaning: "Nedbrytningsprodukt från koagel/fibrin.",
+  },
+  liver: {
+    title: "Leverprover",
+    normal: "ALAT/ASAT/ALP/bilirubin enligt lokalt labb.",
+    danger: "Kraftig stegring, ikterus eller koagulationspåverkan kräver snabb bedömning.",
+    meaning: "Tecken på lever-/gallpåverkan eller systemisk sjukdom.",
+  },
+  bloodGas: {
+    title: "Blodgas",
+    normal: "pH cirka 7.35-7.45; övrigt beror på artär/venös gas.",
+    danger: "pH <7.30, högt pCO2, kraftigt BE-underskott eller laktatstegring är varningssignaler.",
+    meaning: "Syra-bas, ventilation, oxygenation och perfusion.",
+  },
+  urine: {
+    title: "Urinsticka",
+    normal: "Ofta negativ för nitrit, leukocyter, blod och ketoner.",
+    danger: "Nitrit/LPK med påverkan kan stödja UVI/sepsis; ketoner/glukos kan tala för metabol påverkan.",
+    meaning: "Snabb screening för UVI, blod, protein, glukos och ketoner.",
+  },
+  otherLab: {
+    title: "Annat labb",
+    normal: "Beror på provet.",
+    danger: "Markera särskilt värden som påverkar akut handläggning.",
+    meaning: "Fritt fält för övriga prover som behöver följas.",
+  },
+};
+
 const elements = {
   accountForm: document.querySelector("#accountForm"),
   emailInput: document.querySelector("#emailInput"),
@@ -49,6 +215,7 @@ const elements = {
   overdueCount: document.querySelector("#overdueCount"),
   hospitalMap: document.querySelector("#hospitalMap"),
   avatarLayer: document.querySelector("#avatarLayer"),
+  staffDock: document.querySelector("#staffDock"),
   patientGrid: document.querySelector("#patientGrid"),
   loginGate: document.querySelector("#loginGate"),
   patientModal: document.querySelector("#patientModal"),
@@ -75,6 +242,7 @@ const state = {
   now: Date.now(),
   recognition: null,
   listeningField: null,
+  activeStaffId: "",
 };
 
 function storageKey(account = state.account) {
@@ -111,6 +279,31 @@ function escapeHtml(value = "") {
     .replace(/"/g, "&quot;");
 }
 
+function parameterTooltip(key) {
+  const info = parameterInfo[key];
+  if (!info) return "";
+  return `${info.title}\nVad: ${info.meaning}\nNormalintervall: ${info.normal}\nFarligt/akut: ${info.danger}`;
+}
+
+function infoIcon(key) {
+  const text = parameterTooltip(key);
+  if (!text) return "";
+  return `<button class="info-dot" type="button" title="${escapeHtml(text)}" aria-label="Information om ${escapeHtml(parameterInfo[key].title)}">i</button>`;
+}
+
+function newsInfoKey(partId) {
+  const lookup = {
+    AF: "rr",
+    Sat: "sat",
+    Syrgas: "oxygen",
+    Temp: "temp",
+    SBT: "sbp",
+    Puls: "pulse",
+    Medvetande: "consciousness",
+  };
+  return lookup[partId] || "";
+}
+
 function formatDateTimeLocal(timestamp) {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return "";
@@ -135,6 +328,22 @@ function getFlowStatus(flowStatus) {
 function getPatientZone(patient) {
   if (patient.flowStatus) return getFlowStatus(patient.flowStatus).zone;
   return riskMeta[patient.analysis?.risk || "green"].zone;
+}
+
+function getZoneFromPosition(position) {
+  if (!position) return "";
+  if (position.y >= 72 && position.x >= 66) return "home";
+  if (position.y >= 66) return "monitoring";
+  if (position.x < 32) return "acute";
+  if (position.x < 67) return "monitoring";
+  return "near";
+}
+
+function flowStatusFromZone(zone) {
+  if (zone === "acute") return "acute";
+  if (zone === "near") return "near";
+  if (zone === "home") return "home";
+  return "monitoring";
 }
 
 function scoreRespiration(rr) {
@@ -607,8 +816,26 @@ function getTimerState(recommendation) {
   return "active";
 }
 
+function activeTimers(patient) {
+  return (patient.recommendations || [])
+    .filter((item) => !item.completed && item.status !== "Klar")
+    .sort((a, b) => a.dueAt - b.dueAt);
+}
+
+function nextTimerInfo(patient) {
+  const [timer] = activeTimers(patient);
+  if (!timer) return null;
+  const timerState = getTimerState(timer);
+  const minutes = minutesUntil(timer.dueAt);
+  return {
+    ...timer,
+    timerState,
+    label: timerState === "overdue" ? `${Math.abs(minutes)} min sen` : `${Math.max(minutes, 0)} min`,
+  };
+}
+
 function patientHasOverdue(patient) {
-  return (patient.recommendations || []).some((item) => getTimerState(item) === "overdue");
+  return activeTimers(patient).some((item) => getTimerState(item) === "overdue");
 }
 
 function updatePatient(patientId, updater) {
@@ -761,6 +988,8 @@ function renderStats() {
 }
 
 function avatarPosition(patient, zoneIndex, zoneCount) {
+  if (patient.mapPosition) return patient.mapPosition;
+
   const zone = getPatientZone(patient);
   const index = zoneIndex + 1;
   const jitter = (patient.id.charCodeAt(patient.id.length - 1) % 7) - 3;
@@ -769,6 +998,85 @@ function avatarPosition(patient, zoneIndex, zoneCount) {
   if (zone === "monitoring") return { x: 46 + (index % 4) * 7 + jitter, y: 28 + Math.floor(index / 4) * 16 };
   if (zone === "near") return { x: 75 + (index % 3) * 7 + jitter, y: 34 + Math.floor(index / 3) * 17 };
   return { x: 83 + (index % 3) * 5 + jitter, y: 78 + Math.floor(index / 3) * 8 };
+}
+
+function avatarStyle(patient) {
+  const palettes = [
+    ["#ffcf70", "#2f80ed", "#16324f"],
+    ["#f4a261", "#22a06b", "#123b2a"],
+    ["#ffd6a5", "#e5484d", "#5b171c"],
+    ["#e8c39e", "#8b5cf6", "#31215f"],
+    ["#f6d1bd", "#f97316", "#58270a"],
+  ];
+  const seed = patient.id.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const [skin, scrub, dark] = palettes[seed % palettes.length];
+  const visual = clinicalVisual(patient);
+  return `--avatar-skin:${visual.skin || skin}; --avatar-scrub:${scrub}; --avatar-dark:${dark}; --wellness:${visual.wellness}%;`;
+}
+
+function clinicalVisual(patient) {
+  const flags = symptomFlags(patient);
+  const labs = patient.labs || {};
+  const vitals = patient.vitals || {};
+  const risk = patient.analysis?.risk || "green";
+  const sat = parseNumber(vitals.sat);
+  const temp = parseNumber(vitals.temp);
+  const crp = parseNumber(labs.crp);
+  const lactate = parseNumber(labs.lactate);
+  const troponin = parseNumber(labs.troponin);
+  const flow = patient.flowStatus || "";
+  let symptom = "🩺";
+  let condition = `condition-${risk}`;
+  let skin = "";
+  let posture = "standing";
+
+  if (flags.chestPain || troponin > 40) symptom = "❤️";
+  if (flags.abdomen) symptom = "🤢";
+  if (flags.dyspnea || sat <= 94) symptom = "🫁";
+  if (flags.infection || temp >= 38 || crp > 80) symptom = "🔥";
+  if (flags.neuro) symptom = "🧠";
+  if (flags.trauma) symptom = "🦴";
+
+  if (sat !== null && sat <= 92) {
+    condition = "condition-cyanotic";
+    skin = "#9db7d7";
+  } else if ((temp !== null && temp >= 38.5) || crp > 120) {
+    condition = "condition-febrile";
+    skin = "#ffb199";
+  } else if (lactate >= 2.5 || risk === "red") {
+    condition = "condition-shock";
+    skin = "#d8c4ad";
+  }
+
+  if (flow === "acute" || risk === "red") posture = "bed";
+  else if (flow === "near" || flow === "consulted") posture = "chair";
+  else if (flow === "home" || flow === "closed") posture = "home";
+  else if (risk === "yellow") posture = "waiting";
+
+  const wellnessByRisk = { green: 24, yellow: 48, orange: 72, red: 96 };
+  const wellness = Math.min(100, Math.max(12, wellnessByRisk[risk] + (sat <= 92 ? 12 : 0) + (temp >= 38.5 ? 10 : 0)));
+  return { symptom, condition, skin, posture, wellness };
+}
+
+function renderStaffDock() {
+  elements.staffDock.innerHTML = staffTeam
+    .map((staff) => `
+      <button
+        class="staff-token ${state.activeStaffId === staff.id ? "selected" : ""}"
+        data-staff-id="${staff.id}"
+        style="--staff-color:${staff.color};"
+        type="button"
+        title="Klicka för att välja eller dra till patient: ${escapeHtml(staff.label)}"
+      >
+        <span class="staff-head"></span>
+        <span class="staff-body"></span>
+        <strong>${escapeHtml(staff.short)}</strong>
+        <small>${escapeHtml(staff.label)}</small>
+      </button>
+    `)
+    .join("");
+
+  elements.staffDock.querySelectorAll("[data-staff-id]").forEach((button) => bindStaffToken(button));
 }
 
 function renderAvatars() {
@@ -780,17 +1088,29 @@ function renderAvatars() {
       zoneIndexes[zone] = (zoneIndexes[zone] || 0) + 1;
       const risk = patient.analysis.risk;
       const overdue = patientHasOverdue(patient);
+      const nextTimer = nextTimerInfo(patient);
+      const visual = clinicalVisual(patient);
       const selected = state.selectedPatientId === patient.id ? " selected" : "";
       return `
         <button
-          class="patient-avatar risk-${risk}${overdue ? " overdue" : ""}${selected}"
+          class="patient-avatar risk-${risk} posture-${visual.posture} ${visual.condition}${overdue ? " overdue" : ""}${selected}"
           data-patient-id="${patient.id}"
-          style="left:${position.x}%; top:${position.y}%;"
+          style="left:${position.x}%; top:${position.y}%; ${avatarStyle(patient)}"
           title="${escapeHtml(patient.name)} - NEWS ${patient.analysis.news.total}"
           type="button"
         >
+          ${nextTimer ? `<span class="avatar-timer ${nextTimer.timerState}">${escapeHtml(nextTimer.label)}</span>` : ""}
+          <span class="avatar-symptom">${visual.symptom}</span>
+          <span class="avatar-clinical-meter"><i></i></span>
+          <span class="avatar-support"><i></i></span>
+          <span class="avatar-alert-ring"></span>
           <span class="avatar-head"></span>
+          <span class="avatar-hair"></span>
           <span class="avatar-body"></span>
+          <span class="avatar-arm left"></span>
+          <span class="avatar-arm right"></span>
+          <span class="avatar-leg left"></span>
+          <span class="avatar-leg right"></span>
           <span class="avatar-shadow"></span>
           <small>${escapeHtml(patient.name.replace(/^Patient\s*/i, ""))}</small>
         </button>
@@ -799,11 +1119,155 @@ function renderAvatars() {
     .join("");
 
   elements.avatarLayer.querySelectorAll("[data-patient-id]").forEach((button) => {
-    button.addEventListener("click", () => {
-      openPatientDetail(button.dataset.patientId);
-      focusPatient(button.dataset.patientId);
-    });
+    bindPatientAvatar(button);
   });
+}
+
+function pointerToMapPosition(event) {
+  const rect = elements.hospitalMap.getBoundingClientRect();
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  return {
+    x: clamp(((event.clientX - rect.left) / rect.width) * 100, 3, 97),
+    y: clamp(((event.clientY - rect.top) / rect.height) * 100, 3, 97),
+  };
+}
+
+function bindPatientAvatar(button) {
+  let startX = 0;
+  let startY = 0;
+  let dragging = false;
+
+  button.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    startX = event.clientX;
+    startY = event.clientY;
+    dragging = false;
+    button.setPointerCapture(event.pointerId);
+  });
+
+  button.addEventListener("pointermove", (event) => {
+    if (!button.hasPointerCapture(event.pointerId)) return;
+    const distance = Math.hypot(event.clientX - startX, event.clientY - startY);
+    if (distance < 7 && !dragging) return;
+    dragging = true;
+    const position = pointerToMapPosition(event);
+    button.classList.add("is-dragging");
+    button.style.left = `${position.x}%`;
+    button.style.top = `${position.y}%`;
+  });
+
+  button.addEventListener("pointerup", (event) => {
+    if (button.hasPointerCapture(event.pointerId)) {
+      button.releasePointerCapture(event.pointerId);
+    }
+
+    if (dragging) {
+      const position = pointerToMapPosition(event);
+      const zone = getZoneFromPosition(position);
+      updatePatient(button.dataset.patientId, (patient) => ({
+        ...patient,
+        mapPosition: position,
+        flowStatus: flowStatusFromZone(zone),
+      }));
+      return;
+    }
+
+    if (state.activeStaffId) {
+      assignStaffToPatient(state.activeStaffId, button.dataset.patientId);
+      return;
+    }
+
+    openPatientDetail(button.dataset.patientId);
+    focusPatient(button.dataset.patientId);
+  });
+
+  button.addEventListener("pointercancel", () => button.classList.remove("is-dragging"));
+}
+
+function bindStaffToken(button) {
+  let startX = 0;
+  let startY = 0;
+  let dragging = false;
+
+  button.addEventListener("click", () => {
+    if (button.dataset.dragged === "true") return;
+    state.activeStaffId = state.activeStaffId === button.dataset.staffId ? "" : button.dataset.staffId;
+    renderStaffDock();
+  });
+
+  button.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    startX = event.clientX;
+    startY = event.clientY;
+    dragging = false;
+    button.setPointerCapture(event.pointerId);
+  });
+
+  button.addEventListener("pointermove", (event) => {
+    if (!button.hasPointerCapture(event.pointerId)) return;
+    const distance = Math.hypot(event.clientX - startX, event.clientY - startY);
+    if (distance < 7 && !dragging) return;
+    dragging = true;
+    button.classList.add("is-dragging");
+    button.style.setProperty("--drag-x", `${event.clientX - startX}px`);
+    button.style.setProperty("--drag-y", `${event.clientY - startY}px`);
+  });
+
+  button.addEventListener("pointerup", (event) => {
+    if (button.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId);
+    button.classList.remove("is-dragging");
+    button.style.removeProperty("--drag-x");
+    button.style.removeProperty("--drag-y");
+    if (dragging) {
+      button.dataset.dragged = "true";
+      window.setTimeout(() => {
+        delete button.dataset.dragged;
+      }, 0);
+      const patientId = nearestPatientFromPointer(event.clientX, event.clientY);
+      if (patientId) assignStaffToPatient(button.dataset.staffId, patientId);
+    }
+  });
+}
+
+function nearestPatientFromPointer(clientX, clientY) {
+  let best = { id: "", distance: Infinity };
+  elements.avatarLayer.querySelectorAll("[data-patient-id]").forEach((avatar) => {
+    const rect = avatar.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const distance = Math.hypot(clientX - centerX, clientY - centerY);
+    if (distance < best.distance) best = { id: avatar.dataset.patientId, distance };
+  });
+  return best.distance < 130 ? best.id : "";
+}
+
+function assignStaffToPatient(staffId, patientId) {
+  const staff = staffTeam.find((item) => item.id === staffId);
+  if (!staff) return;
+  const interaction = {
+    id: generateId("staff"),
+    staffId: staff.id,
+    label: staff.label,
+    createdAt: Date.now(),
+    note: `${staff.label} kopplad till patienten`,
+  };
+  const recommendation = {
+    id: generateId("rec"),
+    text: `Konsultation: ${staff.timer}`,
+    category: "Konsultation",
+    status: "Pågår",
+    completed: false,
+    dueAt: Date.now() + staff.minutes * 60000,
+  };
+
+  state.activeStaffId = "";
+  updatePatient(patientId, (patient) => ({
+    ...patient,
+    staffInteractions: [interaction, ...(patient.staffInteractions || [])].slice(0, 8),
+    recommendations: [recommendation, ...(patient.recommendations || [])],
+    flowStatus: staff.id === "surgeon" ? "consulted" : patient.flowStatus,
+  }));
+  openPatientDetail(patientId);
 }
 
 function focusPatient(patientId) {
@@ -823,15 +1287,14 @@ function labBadges(patient, limit = 3) {
   if (!abnormalities.length) return `<span class="quiet">Inga tydliga labbavvikelser</span>`;
   return abnormalities
     .slice(0, limit)
-    .map((item) => `<span class="lab-badge severity-${item.severity}">${escapeHtml(item.label)} ${escapeHtml(item.value)}</span>`)
+    .map((item) => `<span class="lab-badge severity-${item.severity}">${escapeHtml(item.label)} ${escapeHtml(item.value)}${infoIcon(item.key)}</span>`)
     .join("");
 }
 
 function timerBadges(patient, limit = 3) {
-  const active = (patient.recommendations || []).filter((item) => !item.completed && item.status !== "Klar");
+  const active = activeTimers(patient);
   if (!active.length) return `<span class="quiet">Inga aktiva timers</span>`;
   return active
-    .sort((a, b) => a.dueAt - b.dueAt)
     .slice(0, limit)
     .map((item) => {
       const timerState = getTimerState(item);
@@ -843,7 +1306,7 @@ function timerBadges(patient, limit = 3) {
 }
 
 function activeRecommendations(patient, limit = 2) {
-  const active = (patient.recommendations || []).filter((item) => !item.completed && item.status !== "Klar").slice(0, limit);
+  const active = activeTimers(patient).slice(0, limit);
   if (!active.length) return `<span class="quiet">Checklistan klar</span>`;
   return active.map((item) => `<li>${escapeHtml(item.text)}</li>`).join("");
 }
@@ -903,7 +1366,7 @@ function renderNewsBreakdown(patient) {
   return patient.analysis.news.parts
     .map((part) => `
       <div class="news-part">
-        <span>${escapeHtml(part.id)}</span>
+        <span>${escapeHtml(part.id)}${infoIcon(newsInfoKey(part.id))}</span>
         <strong>${escapeHtml(part.value ?? "-")}</strong>
         <i>${part.score} p</i>
       </div>
@@ -944,6 +1407,48 @@ function renderRecommendationRows(patient) {
         </div>
       `;
     })
+    .join("");
+}
+
+function renderTimerBuilder() {
+  return `
+    <div class="timer-builder">
+      <label>
+        Typ
+        <select id="timerCategory">
+          ${["Observation", "Undersökning", "Labb", "Bilddiagnostik", "Behandling", "Konsultation", "Övrigt"].map((item) => `<option>${item}</option>`).join("")}
+        </select>
+      </label>
+      <label>
+        Åtgärd
+        <input id="timerLabel" placeholder="t.ex. invänta CT-svar" />
+      </label>
+      <label>
+        Minuter
+        <input id="timerMinutes" type="number" min="1" max="720" value="30" />
+      </label>
+      <button class="button primary" id="startTimerButton" type="button">Starta timer</button>
+    </div>
+    <div class="quick-timer-grid">
+      ${timerPresets.map((preset) => `<button type="button" data-timer-preset="${preset.id}">${escapeHtml(preset.label)} <span>${preset.minutes} min</span></button>`).join("")}
+    </div>
+  `;
+}
+
+function renderStaffInteractions(patient) {
+  const interactions = patient.staffInteractions || [];
+  if (!interactions.length) {
+    return `<p class="quiet">Ingen personal kopplad ännu. Dra en personalfigur till patienten, eller välj personal och klicka på patienten.</p>`;
+  }
+
+  return interactions
+    .map((item) => `
+      <div class="staff-interaction-row">
+        <strong>${escapeHtml(item.label)}</strong>
+        <span>${formatClock(item.createdAt)}</span>
+        <p>${escapeHtml(item.note)}</p>
+      </div>
+    `)
     .join("");
 }
 
@@ -1014,7 +1519,16 @@ function renderPatientDetail(patient) {
         <h3>Rekommendationer och timers</h3>
         <span>Kryssa, ändra status eller justera tid</span>
       </div>
+      ${renderTimerBuilder()}
       <div class="recommendation-list">${renderRecommendationRows(patient)}</div>
+    </section>
+
+    <section class="detail-section">
+      <div class="section-title">
+        <h3>Personalinteraktioner</h3>
+        <span>Dra personal till patienten i 3D-vyn</span>
+      </div>
+      <div class="staff-interactions">${renderStaffInteractions(patient)}</div>
     </section>
 
     <section class="detail-section">
@@ -1038,6 +1552,20 @@ function renderPatientDetail(patient) {
 
   elements.patientDetail.querySelector("#deletePatientButton").addEventListener("click", () => {
     deletePatient(patient.id);
+  });
+
+  elements.patientDetail.querySelector("#startTimerButton").addEventListener("click", () => {
+    const category = elements.patientDetail.querySelector("#timerCategory").value;
+    const label = elements.patientDetail.querySelector("#timerLabel").value.trim() || "Egen åtgärd";
+    const minutes = parseNumber(elements.patientDetail.querySelector("#timerMinutes").value) || 30;
+    addCustomTimer(patient.id, { category, label, minutes });
+  });
+
+  elements.patientDetail.querySelectorAll("[data-timer-preset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const preset = timerPresets.find((item) => item.id === button.dataset.timerPreset);
+      if (preset) addCustomTimer(patient.id, preset);
+    });
   });
 
   elements.patientDetail.querySelectorAll(".recommendation-row").forEach((row) => {
@@ -1072,6 +1600,22 @@ function deletePatient(patientId) {
   persist();
   closePatientDetail();
   render();
+}
+
+function addCustomTimer(patientId, timer) {
+  const recommendation = {
+    id: generateId("rec"),
+    text: `${timer.category}: ${timer.label}`,
+    category: timer.category,
+    status: "Pågår",
+    completed: false,
+    dueAt: Date.now() + Math.max(1, timer.minutes) * 60000,
+  };
+
+  updatePatient(patientId, (patient) => ({
+    ...patient,
+    recommendations: [recommendation, ...(patient.recommendations || [])],
+  }));
 }
 
 function updateRecommendation(patientId, recId, changes) {
@@ -1213,10 +1757,21 @@ function enhanceVoiceInputs() {
   });
 }
 
+function enhanceParameterInfo() {
+  elements.patientForm.querySelectorAll("input[name], textarea[name], select[name]").forEach((field) => {
+    const key = field.name;
+    const label = field.closest("label");
+    if (!label || !parameterInfo[key] || label.querySelector(":scope > .info-dot")) return;
+    label.classList.add("has-info");
+    label.insertAdjacentHTML("afterbegin", infoIcon(key));
+  });
+}
+
 function render() {
   state.now = Date.now();
   renderStats();
   renderLegend();
+  renderStaffDock();
   renderAvatars();
   renderPatients();
 
@@ -1299,6 +1854,7 @@ function showLoginRequired() {
 function init() {
   bindEvents();
   enhanceVoiceInputs();
+  enhanceParameterInfo();
   if (state.account) loadPatients();
   render();
   window.setInterval(() => {

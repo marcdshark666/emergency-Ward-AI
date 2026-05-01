@@ -85,6 +85,22 @@
 
           <div class="hospital-viewport" id="hospitalViewport">
             <div class="hospital-map" id="hospitalMap">
+              <div class="voxel-road road-main" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="voxel-road road-side" aria-hidden="true">
+                <span></span>
+                <span></span>
+              </div>
+              <div class="crosswalk crosswalk-left" aria-hidden="true"></div>
+              <div class="crosswalk crosswalk-right" aria-hidden="true"></div>
+              <div class="ambulance-block" aria-hidden="true">
+                <i></i>
+                <b></b>
+              </div>
+              <div class="helipad-block" aria-hidden="true">H</div>
               <div class="zone zone-acute" data-zone="acute">
                 <span>Röd akut</span>
                 <div class="bed-row"></div>
@@ -110,6 +126,14 @@
               <div class="corridor">
                 <span>Akutkorridor</span>
               </div>
+              <div class="voxel-props" aria-hidden="true">
+                <i class="tree tree-a"></i>
+                <i class="tree tree-b"></i>
+                <i class="tree tree-c"></i>
+                <i class="sign sign-er">AKUT</i>
+                <i class="sign sign-triage">TRIAGE</i>
+              </div>
+              <div class="staff-dock" id="staffDock" aria-label="Personal att dra till patienter"></div>
               <div class="avatar-layer" id="avatarLayer"></div>
             </div>
           </div>

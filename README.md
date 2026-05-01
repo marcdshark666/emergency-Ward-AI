@@ -10,6 +10,7 @@ En fungerande prototyp för akutflöde och patientmonitorering med:
 - preliminärt kliniskt beslutsstöd med differentialdiagnoser
 - rekommendationschecklistor och timers
 - CSS-baserad top-down/3D sjukhusvy med akut-, monitorerings-, närakut- och hemgångszon
+- blockig voxel-/isometrisk miljö med ambulansvägar, helipad, skyltar och kubiska patientfigurer
 - patientkort, detaljpanel och formulär för nya patienter
 - autospar av patientdata per e-postkonto och datum
 - autosparat formulärutkast om sidan stängs mitt i registrering
