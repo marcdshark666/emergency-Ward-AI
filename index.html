@@ -19,7 +19,7 @@
             <span></span>
           </div>
           <div>
-            <h1>Emergency Ward AI</h1>
+            <h1>Emergency Ward</h1>
             <p>Akutflöde, NEWS2, timers och visuell sjukhusöversikt</p>
           </div>
         </div>
@@ -50,25 +50,30 @@
       <main class="workspace">
         <section class="command-panel">
           <div class="status-strip">
-            <div>
-              <span class="label">Inloggad</span>
-              <strong id="accountLabel">Demo-läge</strong>
-            </div>
-            <div>
-              <span class="label">Datum</span>
-              <strong id="todayLabel"></strong>
-            </div>
-            <div>
-              <span class="label">Aktiva patienter</span>
+            <div class="stat-tile stat-patients">
+              <span class="stat-icon" aria-hidden="true">♙</span>
               <strong id="activeCount">0</strong>
+              <span class="label">Patienter</span>
             </div>
-            <div>
-              <span class="label">Försenade timers</span>
-              <strong id="overdueCount">0</strong>
+            <div class="stat-tile stat-near">
+              <span class="stat-icon" aria-hidden="true">⌁</span>
+              <strong id="nearCount">0</strong>
+              <span class="label">Nära akut</span>
+            </div>
+            <div class="stat-tile stat-timers">
+              <span class="stat-icon" aria-hidden="true">◷</span>
+              <strong id="timerCount">0</strong>
+              <span class="label">Aktiva timers</span>
+            </div>
+            <div class="stat-tile stat-news">
+              <span class="stat-icon" aria-hidden="true">▥</span>
+              <strong id="highNewsCount">0</strong>
+              <span class="label">NEWS2 ≥ 5</span>
             </div>
           </div>
 
           <div class="safety-note">
+            <span id="accountLabel">Logga in krävs</span> · <span id="todayLabel"></span><br />
             Beslutsstöd: analysen är preliminär, ger inga definitiva diagnoser och ersätter inte kliniskt omdöme.
             Bekräfta alltid åtgärder manuellt.
           </div>
@@ -99,6 +104,12 @@
               <div class="ambulance-block" aria-hidden="true">
                 <i></i>
                 <b></b>
+              </div>
+              <div class="waiting-zone" aria-hidden="true">
+                <span>VÄNTRUM</span>
+                <i></i>
+                <i></i>
+                <i></i>
               </div>
               <div class="helipad-block" aria-hidden="true">H</div>
               <div class="zone zone-acute" data-zone="acute">

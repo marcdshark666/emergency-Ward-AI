@@ -20,6 +20,422 @@
   --radius: 8px;
 }
 
+/* Stronger isometric voxel character pass */
+.patient-avatar {
+  width: 72px;
+  height: 94px;
+  transform: translate(-50%, -50%) rotateZ(36deg) rotateX(-58deg) translateZ(28px);
+  transform-style: preserve-3d;
+  animation: avatarIdle 1.45s ease-in-out infinite;
+}
+
+.patient-avatar.is-dragging {
+  animation: none;
+  transform: translate(-50%, -50%) rotateZ(36deg) rotateX(-58deg) translateZ(54px) scale(1.08);
+}
+
+.voxel-cube,
+.voxel-limb {
+  transform-style: preserve-3d;
+}
+
+.avatar-head.voxel-cube::before,
+.avatar-head.voxel-cube::after,
+.avatar-body.voxel-cube::before {
+  content: none;
+}
+
+.voxel-cube .cube-top,
+.voxel-cube .cube-side,
+.voxel-limb i {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.avatar-head {
+  top: 0;
+  width: 30px;
+  height: 30px;
+  background: var(--avatar-skin, #f3d7c4);
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  border-radius: 3px;
+  box-shadow: inset -6px -6px 0 rgba(0, 0, 0, 0.18), 9px 10px 0 rgba(0, 0, 0, 0.14);
+}
+
+.avatar-head .cube-top {
+  left: 2px;
+  right: -9px;
+  top: -10px;
+  height: 10px;
+  background: #ffe1c8;
+  border: 3px solid rgba(255, 255, 255, 0.72);
+  border-bottom: 0;
+  transform: skewX(-38deg);
+  transform-origin: bottom left;
+}
+
+.condition-cyanotic .avatar-head .cube-top {
+  background: #c0d4ee;
+}
+
+.condition-febrile .avatar-head .cube-top {
+  background: #ffc6b4;
+}
+
+.condition-shock .avatar-head .cube-top {
+  background: #ead9c7;
+}
+
+.avatar-head .cube-side {
+  top: -3px;
+  right: -12px;
+  width: 12px;
+  height: 31px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 3px solid rgba(255, 255, 255, 0.58);
+  border-left: 0;
+  transform: skewY(-42deg);
+  transform-origin: left top;
+}
+
+.avatar-head .eye {
+  position: absolute;
+  top: 13px;
+  z-index: 8;
+  width: 4px;
+  height: 4px;
+  background: #122024;
+  border-radius: 1px;
+}
+
+.avatar-head .eye.left {
+  left: 8px;
+}
+
+.avatar-head .eye.right {
+  right: 8px;
+}
+
+.avatar-hair {
+  top: -7px;
+  width: 32px;
+  height: 12px;
+  border-radius: 3px 3px 1px 1px;
+  box-shadow: 7px 7px 0 rgba(0, 0, 0, 0.13);
+}
+
+.avatar-hair .cube-top {
+  left: 2px;
+  right: -8px;
+  top: -6px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.14);
+  transform: skewX(-38deg);
+}
+
+.avatar-hair .cube-side {
+  top: 0;
+  right: -9px;
+  width: 9px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  transform: skewY(-42deg);
+}
+
+.avatar-body {
+  top: 31px;
+  width: 38px;
+  height: 38px;
+  border-radius: 3px;
+  box-shadow: inset -8px -8px 0 rgba(0, 0, 0, 0.18), 10px 12px 0 rgba(0, 0, 0, 0.15);
+}
+
+.avatar-body .cube-top {
+  left: 2px;
+  right: -11px;
+  top: -13px;
+  height: 13px;
+  background: rgba(255, 255, 255, 0.28);
+  border: 3px solid currentColor;
+  border-bottom: 0;
+  transform: skewX(-38deg);
+  transform-origin: bottom left;
+}
+
+.avatar-body .cube-side {
+  top: -3px;
+  right: -14px;
+  width: 14px;
+  height: 39px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 3px solid currentColor;
+  border-left: 0;
+  transform: skewY(-42deg);
+  transform-origin: left top;
+}
+
+.avatar-body .chest-mark {
+  position: absolute;
+  left: 50%;
+  top: 9px;
+  z-index: 9;
+  width: 16px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+
+.avatar-arm {
+  top: 36px;
+  width: 12px;
+  height: 31px;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.18);
+}
+
+.avatar-arm i,
+.avatar-leg i {
+  inset: -2px -7px 1px auto;
+  width: 7px;
+  background: rgba(0, 0, 0, 0.22);
+  transform: skewY(-38deg);
+}
+
+.avatar-arm.left {
+  left: 11px;
+  animation: armSwingLeft 1.05s ease-in-out infinite;
+}
+
+.avatar-arm.right {
+  right: 11px;
+  animation: armSwingRight 1.05s ease-in-out infinite;
+}
+
+.avatar-leg {
+  top: 66px;
+  width: 13px;
+  height: 22px;
+}
+
+.avatar-leg.left {
+  left: 24px;
+  animation: legStepLeft 1.05s ease-in-out infinite;
+}
+
+.avatar-leg.right {
+  right: 24px;
+  animation: legStepRight 1.05s ease-in-out infinite;
+}
+
+.avatar-shadow {
+  bottom: -7px;
+  width: 58px;
+  height: 17px;
+}
+
+.patient-avatar small {
+  top: 91px;
+}
+
+.posture-bed,
+.posture-chair,
+.posture-home {
+  animation: avatarIdle 2.2s ease-in-out infinite;
+}
+
+.posture-bed .avatar-support {
+  top: 49px;
+  width: 96px;
+  height: 38px;
+  background: #dce9ef;
+  box-shadow: 12px 14px 0 rgba(0, 0, 0, 0.2);
+}
+
+.posture-bed .avatar-support::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: -12px;
+  top: -14px;
+  height: 14px;
+  background: #f6fbff;
+  border: 3px solid #fff;
+  border-bottom: 0;
+  transform: skewX(-38deg);
+}
+
+.posture-bed .avatar-support::after {
+  content: "";
+  position: absolute;
+  right: -15px;
+  top: -2px;
+  width: 15px;
+  height: 38px;
+  background: #b6cbd4;
+  border: 3px solid #fff;
+  border-left: 0;
+  transform: skewY(-42deg);
+}
+
+.posture-bed .avatar-body {
+  top: 43px;
+  transform: translateX(-50%) rotate(78deg);
+  animation: patientBreathing 1.7s ease-in-out infinite;
+}
+
+.posture-bed .avatar-head {
+  top: 31px;
+  left: 28%;
+}
+
+.posture-bed .avatar-hair {
+  top: 24px;
+  left: 28%;
+}
+
+.posture-bed .avatar-arm,
+.posture-bed .avatar-leg {
+  display: none;
+}
+
+.posture-chair .avatar-support,
+.posture-waiting .avatar-support {
+  top: 61px;
+  width: 54px;
+  height: 34px;
+  background: #9b5e35;
+  box-shadow: 11px 14px 0 rgba(0, 0, 0, 0.2);
+}
+
+.posture-chair .avatar-support::before,
+.posture-waiting .avatar-support::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  right: -10px;
+  top: -11px;
+  height: 11px;
+  background: #c0824f;
+  border: 3px solid #fff;
+  border-bottom: 0;
+  transform: skewX(-38deg);
+}
+
+.posture-chair .avatar-support::after,
+.posture-waiting .avatar-support::after {
+  content: "";
+  position: absolute;
+  right: -13px;
+  top: -1px;
+  width: 13px;
+  height: 34px;
+  background: #754324;
+  border: 3px solid #fff;
+  border-left: 0;
+  transform: skewY(-42deg);
+}
+
+.posture-chair .avatar-leg,
+.posture-waiting .avatar-leg {
+  top: 65px;
+  height: 13px;
+}
+
+.posture-home .avatar-support {
+  top: 60px;
+  width: 58px;
+  height: 28px;
+  background: #8b5a2b;
+  box-shadow: 10px 13px 0 rgba(0, 0, 0, 0.18);
+}
+
+.staff-token {
+  transform: translate(var(--drag-x, 0), var(--drag-y, 0)) translateZ(18px);
+  animation: staffIdle 1.8s ease-in-out infinite;
+}
+
+.staff-head,
+.staff-body {
+  box-shadow: inset -6px -6px 0 rgba(0, 0, 0, 0.18), 8px 9px 0 rgba(0, 0, 0, 0.14);
+}
+
+@keyframes avatarIdle {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -5px;
+  }
+}
+
+@keyframes staffIdle {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -3px;
+  }
+}
+
+@keyframes armSwingLeft {
+  0%,
+  100% {
+    rotate: -10deg;
+  }
+  50% {
+    rotate: 12deg;
+  }
+}
+
+@keyframes armSwingRight {
+  0%,
+  100% {
+    rotate: 10deg;
+  }
+  50% {
+    rotate: -12deg;
+  }
+}
+
+@keyframes legStepLeft {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 3px -2px;
+  }
+}
+
+@keyframes legStepRight {
+  0%,
+  100% {
+    translate: 3px -2px;
+  }
+  50% {
+    translate: 0 0;
+  }
+}
+
+@keyframes patientBreathing {
+  0%,
+  100% {
+    scale: 1;
+  }
+  50% {
+    scale: 1.04;
+  }
+}
+
+@media (max-width: 900px) {
+  .patient-avatar {
+    transform: translate(-50%, -50%) rotateZ(35deg) rotateX(-54deg) translateZ(18px) scale(0.82);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -686,6 +1102,58 @@ button {
   height: 10px;
   background: #8bd3ff;
   border-radius: 2px;
+}
+
+.waiting-zone {
+  position: absolute;
+  z-index: 3;
+  left: 6%;
+  top: 75%;
+  width: 30%;
+  height: 18%;
+  background: linear-gradient(135deg, rgba(248, 251, 251, 0.78), rgba(193, 209, 214, 0.6));
+  border: 3px solid rgba(255, 255, 255, 0.68);
+  border-radius: 3px;
+  box-shadow: 0 18px 0 rgba(0, 0, 0, 0.22), var(--voxel-shadow);
+  transform-style: preserve-3d;
+}
+
+.waiting-zone span {
+  position: absolute;
+  left: 8px;
+  top: 7px;
+  padding: 3px 6px;
+  color: #102024;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(16, 32, 36, 0.18);
+  border-radius: 2px;
+  font-size: 0.68rem;
+  font-weight: 950;
+}
+
+.waiting-zone i {
+  position: absolute;
+  bottom: 16px;
+  width: 34px;
+  height: 18px;
+  background: #2f80ed;
+  border: 3px solid #fff;
+  border-radius: 2px;
+  box-shadow: 7px 9px 0 rgba(0, 0, 0, 0.14);
+}
+
+.waiting-zone i:nth-of-type(1) {
+  left: 28%;
+}
+
+.waiting-zone i:nth-of-type(2) {
+  left: 45%;
+  background: #22a06b;
+}
+
+.waiting-zone i:nth-of-type(3) {
+  left: 62%;
+  background: #f97316;
 }
 
 .helipad-block {
@@ -1472,6 +1940,33 @@ button {
   cursor: help;
 }
 
+.mini-edit {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 5px;
+  color: #254653;
+  background: #fff;
+  border: 1px solid #c9d8dc;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.mini-edit:hover {
+  color: #fff;
+  background: #1b75d0;
+  border-color: #1b75d0;
+}
+
+.edit-patient-button {
+  width: 100%;
+  margin-top: 8px;
+}
+
 .lab-badge .info-dot,
 .news-part .info-dot {
   width: 16px;
@@ -2192,5 +2687,998 @@ textarea + .voice-button,
   .status-grid,
   .compact-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Final visual pass: polished isometric ward, lifted voxel characters, visible map with bottom detail panel. */
+body {
+  background:
+    linear-gradient(rgba(30, 216, 214, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 216, 214, 0.05) 1px, transparent 1px),
+    radial-gradient(circle at 60% 10%, rgba(30, 216, 214, 0.22), transparent 38%),
+    #06171c;
+  background-size: 42px 42px, 42px 42px, auto, auto;
+}
+
+.scene-panel {
+  background: transparent;
+  border-color: rgba(134, 214, 222, 0.28);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+}
+
+.hospital-viewport {
+  min-height: clamp(610px, 64vw, 780px);
+  overflow: visible;
+  padding: clamp(18px, 3vw, 34px);
+  background:
+    radial-gradient(circle at 45% 28%, rgba(34, 160, 107, 0.18), transparent 32%),
+    linear-gradient(rgba(86, 198, 205, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(86, 198, 205, 0.06) 1px, transparent 1px),
+    linear-gradient(145deg, rgba(0, 45, 54, 0.96), rgba(3, 21, 27, 0.98));
+  background-size: auto, 38px 38px, 38px 38px, auto;
+  border-radius: 8px;
+  perspective: 1300px;
+}
+
+.hospital-map {
+  width: min(1540px, 124vw) !important;
+  height: clamp(560px, 48vw, 700px) !important;
+  transform: rotateX(55deg) rotateZ(-37deg) scale(0.88) !important;
+  transform-origin: 50% 54%;
+  overflow: visible;
+}
+
+.hospital-map.is-focused {
+  transform-origin: var(--focus-x) var(--focus-y);
+  transform: rotateX(55deg) rotateZ(-37deg) scale(0.96) !important;
+}
+
+.hospital-map::before {
+  content: "";
+  position: absolute;
+  inset: 3% 1% 2% 1%;
+  background: #30444b;
+  border: 4px solid #78919b;
+  box-shadow: 24px 26px 0 rgba(0, 0, 0, 0.34), inset 0 0 0 6px rgba(255, 255, 255, 0.08);
+  transform: translateZ(-32px);
+}
+
+.zone,
+.corridor,
+.waiting-zone,
+.ambulance-block {
+  transform-style: preserve-3d;
+  overflow: visible;
+}
+
+.zone {
+  border: 5px solid rgba(205, 237, 241, 0.78);
+  box-shadow:
+    0 20px 0 rgba(8, 20, 24, 0.55),
+    0 28px 26px rgba(0, 0, 0, 0.24),
+    inset 0 0 0 5px rgba(255, 255, 255, 0.08);
+}
+
+.zone::before {
+  inset: 0;
+  opacity: 0.22;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.72) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.72) 2px, transparent 2px);
+  background-size: 46px 46px;
+}
+
+.zone span,
+.corridor span,
+.waiting-zone span {
+  padding: 7px 13px;
+  color: #fff;
+  background: rgba(7, 22, 28, 0.58);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 9px 0 rgba(0, 0, 0, 0.24);
+  font-size: clamp(0.72rem, 1.1vw, 1rem);
+  letter-spacing: 0;
+}
+
+.zone-acute {
+  left: 2%;
+  top: 30%;
+  width: 31%;
+  height: 50%;
+  background: linear-gradient(145deg, rgba(255, 92, 92, 0.92), rgba(190, 37, 46, 0.9));
+}
+
+.zone-monitor {
+  left: 27%;
+  top: 7%;
+  width: 42%;
+  height: 54%;
+  background: linear-gradient(145deg, rgba(45, 202, 124, 0.93), rgba(24, 130, 85, 0.9));
+}
+
+.zone-near {
+  left: 65%;
+  top: 4%;
+  width: 31%;
+  height: 42%;
+  background: linear-gradient(145deg, rgba(75, 148, 255, 0.94), rgba(28, 91, 194, 0.9));
+}
+
+.corridor {
+  left: 35%;
+  top: 58%;
+  width: 45%;
+  height: 29%;
+  background:
+    linear-gradient(90deg, transparent 16%, rgba(255, 255, 255, 0.78) 16% 18%, transparent 18% 28%, rgba(255, 255, 255, 0.78) 28% 30%, transparent 30%),
+    linear-gradient(145deg, #cdd8dd, #91a6b1);
+  border: 5px solid rgba(226, 241, 244, 0.82);
+  box-shadow: 0 18px 0 rgba(18, 35, 42, 0.54), 0 26px 24px rgba(0, 0, 0, 0.22);
+}
+
+.zone-home {
+  left: 79%;
+  top: 49%;
+  width: 18%;
+  height: 24%;
+  background: linear-gradient(145deg, #d6dde2, #8997a1);
+}
+
+.waiting-zone {
+  left: 77%;
+  top: 49%;
+  width: 17%;
+  height: 19%;
+  z-index: 12;
+  background: linear-gradient(145deg, rgba(230, 238, 243, 0.95), rgba(147, 164, 176, 0.95));
+  border: 5px solid rgba(244, 249, 250, 0.84);
+  box-shadow: 0 18px 0 rgba(18, 35, 42, 0.5), 0 26px 22px rgba(0, 0, 0, 0.2);
+}
+
+.waiting-zone i {
+  background: #276caa;
+  border-color: #cfe6ff;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.18);
+}
+
+.ambulance-block {
+  left: 38%;
+  top: 61%;
+  width: 15%;
+  height: 12%;
+  z-index: 18;
+}
+
+.avatar-layer {
+  z-index: 95 !important;
+  transform: translateZ(180px) !important;
+  pointer-events: none;
+}
+
+.patient-avatar,
+.map-staff-avatar {
+  pointer-events: auto;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 20px 16px rgba(0, 0, 0, 0.34));
+}
+
+.patient-avatar {
+  width: 78px !important;
+  height: 104px !important;
+  transform: translate(-50%, -50%) rotateZ(37deg) rotateX(-55deg) translateZ(190px) scale(var(--avatar-scale, 1)) !important;
+  animation: avatarBounceFinal 1.55s ease-in-out infinite;
+}
+
+.patient-avatar.is-dragging {
+  z-index: 220 !important;
+  animation: none;
+  transform: translate(-50%, -50%) rotateZ(37deg) rotateX(-55deg) translateZ(250px) scale(calc(var(--avatar-scale, 1) * 1.08)) !important;
+}
+
+.patient-callout {
+  position: absolute;
+  left: 50%;
+  top: -104px;
+  z-index: 40;
+  width: 168px;
+  min-height: 74px;
+  padding: 10px 12px 13px;
+  color: #122027;
+  background: #fffefa;
+  border: 2px solid rgba(14, 34, 42, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 14px 0 rgba(0, 0, 0, 0.15), 0 16px 28px rgba(0, 0, 0, 0.22);
+  transform: translateX(-50%);
+  text-align: left;
+}
+
+.patient-callout::after {
+  content: "";
+  position: absolute;
+  left: 52%;
+  bottom: -13px;
+  width: 20px;
+  height: 20px;
+  background: #fffefa;
+  border-right: 2px solid rgba(14, 34, 42, 0.18);
+  border-bottom: 2px solid rgba(14, 34, 42, 0.18);
+  transform: rotate(45deg);
+}
+
+.callout-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.callout-top strong {
+  color: #1f6fe5;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.callout-top em {
+  padding: 4px 8px;
+  color: #4b3a00;
+  background: #fde86f;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.patient-callout > span:not(.callout-top) {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.patient-callout p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.18;
+}
+
+.patient-callout i {
+  font-style: normal;
+  font-size: 1.35rem;
+}
+
+.avatar-timer {
+  display: none;
+}
+
+.avatar-symptom {
+  top: -35px !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  font-size: 1.15rem !important;
+  box-shadow: 0 9px 0 rgba(0, 0, 0, 0.16);
+}
+
+.avatar-clinical-meter {
+  top: -37px !important;
+  left: calc(50% + 34px) !important;
+  height: 52px !important;
+  width: 12px !important;
+  background: linear-gradient(#e5484d 0 35%, #f6b52f 35% 66%, #22a06b 66%);
+  border: 3px solid #fff !important;
+  overflow: visible !important;
+}
+
+.avatar-clinical-meter::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  width: 18px;
+  height: 18px;
+  background: inherit;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.avatar-head.voxel-cube::before,
+.avatar-head.voxel-cube::after,
+.avatar-body.voxel-cube::before {
+  content: none !important;
+}
+
+.avatar-head {
+  width: 33px !important;
+  height: 33px !important;
+  border-radius: 4px !important;
+}
+
+.avatar-body {
+  top: 34px !important;
+  width: 42px !important;
+  height: 42px !important;
+  background: var(--avatar-scrub, #2f80ed) !important;
+}
+
+.avatar-body .chest-mark::after {
+  content: "+";
+  position: absolute;
+  inset: -6px 0 auto 0;
+  color: var(--avatar-accent, #fff);
+  font-size: 1rem;
+  font-weight: 950;
+  text-align: center;
+}
+
+.theme-cardiac .avatar-body .chest-mark::after {
+  content: "♥";
+}
+
+.theme-respiratory .avatar-body .chest-mark::after {
+  content: "L";
+}
+
+.theme-neuro .avatar-body .chest-mark::after {
+  content: "N";
+}
+
+.theme-abdominal .avatar-body .chest-mark::after {
+  content: "B";
+}
+
+.theme-pregnant .avatar-body {
+  border-bottom-width: 10px !important;
+}
+
+.theme-infection .avatar-alert-ring,
+.theme-toxic .avatar-alert-ring {
+  animation: pulseRing 1s ease-in-out infinite;
+}
+
+.avatar-woman .avatar-hair {
+  height: 18px !important;
+  top: -8px !important;
+  background: #4b2f23 !important;
+}
+
+.avatar-child .patient-callout {
+  width: 146px;
+  top: -96px;
+}
+
+.avatar-elderly .avatar-hair {
+  background: #f2f2f2 !important;
+}
+
+.posture-bed .avatar-support {
+  display: block !important;
+  top: 45px !important;
+  width: 96px !important;
+  height: 38px !important;
+  background: linear-gradient(145deg, #f5fbff, #b4c9d7) !important;
+  border: 4px solid #fff !important;
+  border-radius: 5px !important;
+  box-shadow: 0 14px 0 rgba(0, 0, 0, 0.22) !important;
+  transform: translateX(-50%) skewX(-8deg) !important;
+}
+
+.posture-bed .avatar-head {
+  left: 28% !important;
+  top: 27px !important;
+}
+
+.posture-bed .avatar-hair {
+  left: 28% !important;
+  top: 21px !important;
+}
+
+.posture-bed .avatar-body {
+  top: 38px !important;
+  transform: translateX(-50%) rotate(82deg) !important;
+}
+
+.posture-waiting .avatar-support,
+.posture-chair .avatar-support {
+  display: block !important;
+  top: 55px !important;
+  width: 54px !important;
+  height: 30px !important;
+  background: #2b79c2 !important;
+  border: 4px solid #d7edff !important;
+}
+
+.staff-dock {
+  left: 43% !important;
+  right: auto !important;
+  bottom: 8% !important;
+  z-index: 110 !important;
+  min-width: 450px;
+  padding-top: 26px;
+  transform: rotateZ(37deg) rotateX(-55deg) translateZ(205px) !important;
+}
+
+.staff-dock::before {
+  content: "Fikarum / specialister";
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  padding: 5px 10px;
+  color: #fff;
+  background: rgba(9, 25, 31, 0.78);
+  border: 2px solid rgba(255, 255, 255, 0.26);
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.staff-token,
+.map-staff-avatar {
+  width: 74px !important;
+  height: 96px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.staff-token .staff-head,
+.map-staff-avatar .staff-head {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 30px;
+  height: 30px;
+  background: #ffd6a5;
+  border: 3px solid #fff;
+  border-radius: 4px;
+  box-shadow: inset -6px -6px 0 rgba(0, 0, 0, 0.16), 8px 8px 0 rgba(0, 0, 0, 0.16);
+  transform: translateX(-50%);
+}
+
+.staff-token .staff-body,
+.map-staff-avatar .staff-body {
+  position: absolute;
+  left: 50%;
+  top: 36px;
+  width: 40px;
+  height: 42px;
+  background: var(--staff-color);
+  border: 3px solid #fff;
+  border-radius: 4px;
+  box-shadow: inset -7px -7px 0 rgba(0, 0, 0, 0.18), 8px 10px 0 rgba(0, 0, 0, 0.16);
+  transform: translateX(-50%);
+}
+
+.staff-tool {
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  z-index: 4;
+  color: #0d1a1f;
+  font-size: 1rem;
+  font-weight: 950;
+  transform: translateX(-50%);
+}
+
+.staff-role-er-doctor .staff-tool::after {
+  content: "●";
+}
+
+.staff-role-nurse .staff-tool::after {
+  content: "+";
+  color: #fff;
+}
+
+.staff-role-surgeon .staff-tool::after {
+  content: "S";
+  color: #fff;
+}
+
+.staff-role-anesthesia .staff-tool::after {
+  content: "A";
+  color: #fff;
+}
+
+.staff-role-cardiology .staff-tool::after {
+  content: "♥";
+  color: #fff;
+}
+
+.staff-token strong,
+.staff-token small {
+  z-index: 5;
+}
+
+.map-staff-avatar {
+  position: absolute;
+  z-index: 115;
+  padding: 0;
+  transform: translate(-50%, -50%) rotateZ(37deg) rotateX(-55deg) translateZ(215px) !important;
+  animation: staffArrive 900ms cubic-bezier(0.22, 1, 0.36, 1) both, avatarBounceFinal 1.7s ease-in-out 900ms infinite;
+}
+
+.map-staff-avatar small,
+.map-staff-avatar b {
+  position: absolute;
+  left: 50%;
+  top: 80px;
+  z-index: 8;
+  padding: 3px 7px;
+  color: #fff;
+  background: var(--staff-color);
+  border: 2px solid #fff;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 950;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.map-staff-avatar b {
+  top: -26px;
+  color: #3b2500;
+  background: #fde86f;
+}
+
+.map-staff-avatar.needs-review {
+  animation: staffArrive 500ms ease both, pulseRing 1.2s ease-in-out 600ms infinite;
+}
+
+.detail-drawer {
+  inset: auto 16px 16px 16px !important;
+  z-index: 140;
+  height: min(48vh, 520px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 !important;
+  background: linear-gradient(to top, rgba(3, 14, 18, 0.74), rgba(3, 14, 18, 0.16), transparent);
+  pointer-events: none;
+}
+
+.detail-drawer[aria-hidden="true"] {
+  transform: translateY(26px);
+}
+
+.drawer-card {
+  width: min(1120px, 100%) !important;
+  max-height: 100% !important;
+  pointer-events: auto;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.editable-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.editable-summary-grid div {
+  min-width: 0;
+  padding: 10px;
+  background: #f6fbfb;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.editable-summary-grid .wide {
+  grid-column: span 2;
+}
+
+.editable-summary-grid span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.editable-summary-grid strong {
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
+}
+
+.staff-interaction-row {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  background: #f7fbfc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.staff-interaction-row > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.staff-interaction-row span,
+.staff-interaction-row small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.staff-review-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.staff-review-actions button {
+  flex: 1;
+  padding: 8px 10px;
+  color: #13262d;
+  background: #e8f3f5;
+  border: 1px solid #c6d9dd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.staff-review-actions button:first-child {
+  color: #fff;
+  background: #22a06b;
+  border-color: #22a06b;
+}
+
+@keyframes avatarBounceFinal {
+  0%,
+  100% {
+    margin-top: 0;
+  }
+  50% {
+    margin-top: -5px;
+  }
+}
+
+@keyframes staffArrive {
+  from {
+    opacity: 0.25;
+    transform: translate(-240px, 140px) rotateZ(37deg) rotateX(-55deg) translateZ(215px) scale(0.84);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotateZ(37deg) rotateX(-55deg) translateZ(215px) scale(1);
+  }
+}
+
+@media (max-width: 860px) {
+  .hospital-viewport {
+    min-height: 560px;
+    overflow: hidden;
+  }
+
+  .hospital-map {
+    width: 900px !important;
+    height: 560px !important;
+    transform: rotateX(54deg) rotateZ(-37deg) scale(0.66) !important;
+    transform-origin: 44% 44%;
+  }
+
+  .hospital-map.is-focused {
+    transform: rotateX(54deg) rotateZ(-37deg) scale(0.74) !important;
+  }
+
+  .patient-avatar {
+    transform: translate(-50%, -50%) rotateZ(37deg) rotateX(-55deg) translateZ(190px) scale(calc(var(--avatar-scale, 1) * 0.82)) !important;
+  }
+
+  .patient-callout {
+    width: 136px;
+    top: -94px;
+    padding: 8px 9px 11px;
+  }
+
+  .callout-top strong {
+    font-size: 0.88rem;
+  }
+
+  .patient-callout p {
+    font-size: 0.68rem;
+  }
+
+  .staff-dock {
+    left: 36% !important;
+    bottom: 3% !important;
+    min-width: 360px;
+    transform: rotateZ(37deg) rotateX(-55deg) translateZ(205px) scale(0.82) !important;
+  }
+
+  .detail-drawer {
+    inset: auto 8px 8px 8px !important;
+    height: min(56vh, 520px);
+  }
+
+  .editable-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .editable-summary-grid .wide {
+    grid-column: auto;
+  }
+}
+
+/* Reference-style dashboard framing: top-left brand, stat glass, map-first composition. */
+.app-shell {
+  max-width: none;
+  padding: 20px;
+}
+
+.topbar {
+  position: relative;
+  z-index: 12;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.brand-block {
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 62px;
+  height: 62px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.34), transparent 50%),
+    linear-gradient(135deg, #23e0d0, #0d8d96);
+  box-shadow: inset -9px -9px 0 rgba(0, 0, 0, 0.18), 0 14px 24px rgba(0, 0, 0, 0.28);
+  transform: rotateX(16deg) rotateZ(-8deg);
+}
+
+.brand-block h1 {
+  color: #fff;
+  font-size: clamp(1.95rem, 3.6vw, 3.4rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+}
+
+.brand-block h1::after {
+  content: " AI";
+  color: #34e4d5;
+}
+
+.brand-block p {
+  color: #e8f4f5;
+  font-size: clamp(0.95rem, 1.35vw, 1.35rem);
+}
+
+.account-form {
+  max-width: 560px;
+  padding: 10px;
+  background: rgba(7, 25, 31, 0.64);
+  border: 1px solid rgba(178, 224, 230, 0.24);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.workspace {
+  position: relative;
+  margin-top: 10px;
+}
+
+.command-panel {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  z-index: 11;
+  width: min(620px, 52vw);
+  grid-template-columns: 1fr;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.status-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-color: rgba(169, 221, 229, 0.36);
+  background: rgba(4, 20, 26, 0.74);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(9px);
+}
+
+.status-strip > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  min-height: 74px;
+  padding: 12px 16px;
+}
+
+.stat-icon {
+  grid-row: span 2;
+  align-self: center;
+  color: #fff;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.status-strip strong {
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 0.98;
+}
+
+.status-strip .label {
+  color: #d9edf0;
+  font-size: 0.72rem;
+  text-transform: none;
+}
+
+.safety-note {
+  display: block;
+  max-width: 620px;
+  padding: 10px 12px;
+  color: rgba(244, 252, 253, 0.86);
+  background: rgba(4, 20, 26, 0.58);
+  border-color: rgba(169, 221, 229, 0.18);
+  font-size: 0.76rem;
+  pointer-events: auto;
+  backdrop-filter: blur(9px);
+}
+
+.safety-note #accountLabel,
+.safety-note #todayLabel {
+  color: #fff;
+  font-weight: 900;
+}
+
+.scene-panel {
+  position: relative;
+  min-height: clamp(680px, 72vw, 880px);
+  margin-top: -96px;
+  overflow: visible;
+  border: 0;
+  box-shadow: none;
+}
+
+.scene-head {
+  position: static;
+  padding: 0;
+}
+
+.scene-head > div:first-child {
+  position: absolute;
+  right: 22px;
+  top: 18px;
+  z-index: 12;
+  max-width: 360px;
+  padding: 12px 14px;
+  background: rgba(4, 20, 26, 0.58);
+  border: 1px solid rgba(169, 221, 229, 0.22);
+  border-radius: 8px;
+  backdrop-filter: blur(9px);
+}
+
+.scene-head h2 {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.scene-head p {
+  color: #d5e9ec;
+}
+
+.scene-legend {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  z-index: 13;
+  display: grid;
+  grid-template-columns: repeat(6, auto);
+  gap: 0;
+  padding: 12px 16px;
+  background: rgba(4, 20, 26, 0.82);
+  border: 1px solid rgba(169, 221, 229, 0.34);
+  border-radius: 8px;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.32);
+  transform: translateX(-50%);
+  backdrop-filter: blur(10px);
+}
+
+.legend-item {
+  padding: 0 18px;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  color: #e8f5f7;
+}
+
+.legend-item:last-child {
+  border-right: 0;
+}
+
+.legend-item i {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  box-shadow: inset -6px -6px 0 rgba(0, 0, 0, 0.18), 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.patient-board {
+  position: relative;
+  z-index: 4;
+  margin-top: 14px;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    padding: 12px;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .account-form {
+    max-width: none;
+    width: 100%;
+  }
+
+  .command-panel {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 100%;
+    pointer-events: auto;
+  }
+
+  .status-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .status-strip > div {
+    min-height: 68px;
+    padding: 10px 12px;
+  }
+
+  .status-strip strong {
+    font-size: 1.42rem;
+  }
+
+  .status-strip .label {
+    font-size: 0.68rem;
+  }
+
+  .stat-icon {
+    font-size: 1.15rem;
+  }
+
+  .scene-panel {
+    margin-top: 0;
+    min-height: 600px;
+  }
+
+  .scene-head > div:first-child {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    max-width: none;
+  }
+
+  .scene-legend {
+    left: 10px;
+    right: 10px;
+    bottom: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    transform: none;
+  }
+
+  .legend-item {
+    padding: 6px 8px;
+    border-right: 0;
   }
 }

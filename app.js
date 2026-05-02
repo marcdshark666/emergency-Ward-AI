@@ -12,6 +12,8 @@ const riskMeta = {
 };
 
 const flowStatuses = [
+  { id: "ambulance", label: "I ambulans", zone: "ambulance" },
+  { id: "waiting", label: "Väntrum", zone: "waiting" },
   { id: "acute", label: "Akut monitorering", zone: "acute" },
   { id: "monitoring", label: "Monitoreras", zone: "monitoring" },
   { id: "near", label: "Närakut", zone: "near" },
@@ -212,6 +214,9 @@ const elements = {
   accountLabel: document.querySelector("#accountLabel"),
   todayLabel: document.querySelector("#todayLabel"),
   activeCount: document.querySelector("#activeCount"),
+  nearCount: document.querySelector("#nearCount"),
+  timerCount: document.querySelector("#timerCount"),
+  highNewsCount: document.querySelector("#highNewsCount"),
   overdueCount: document.querySelector("#overdueCount"),
   hospitalMap: document.querySelector("#hospitalMap"),
   avatarLayer: document.querySelector("#avatarLayer"),
@@ -238,6 +243,7 @@ const state = {
   account: savedAccount === "demo@akut.local" ? "" : savedAccount,
   patients: [],
   selectedPatientId: "",
+  editingPatientId: "",
   riskFilter: "all",
   now: Date.now(),
   recognition: null,
@@ -291,6 +297,10 @@ function infoIcon(key) {
   return `<button class="info-dot" type="button" title="${escapeHtml(text)}" aria-label="Information om ${escapeHtml(parameterInfo[key].title)}">i</button>`;
 }
 
+function editIcon(fieldName) {
+  return `<button class="mini-edit" type="button" data-edit-field="${escapeHtml(fieldName)}" title="Redigera detta fält" aria-label="Redigera detta fält">✎</button>`;
+}
+
 function newsInfoKey(partId) {
   const lookup = {
     AF: "rr",
@@ -332,6 +342,8 @@ function getPatientZone(patient) {
 
 function getZoneFromPosition(position) {
   if (!position) return "";
+  if (position.x >= 44 && position.x <= 59 && position.y >= 56 && position.y <= 70) return "ambulance";
+  if (position.x >= 8 && position.x <= 36 && position.y >= 68) return "waiting";
   if (position.y >= 72 && position.x >= 66) return "home";
   if (position.y >= 66) return "monitoring";
   if (position.x < 32) return "acute";
@@ -340,10 +352,16 @@ function getZoneFromPosition(position) {
 }
 
 function flowStatusFromZone(zone) {
+  if (zone === "ambulance") return "ambulance";
+  if (zone === "waiting") return "waiting";
   if (zone === "acute") return "acute";
   if (zone === "near") return "near";
   if (zone === "home") return "home";
   return "monitoring";
+}
+
+function staffRoleClass(staffId = "") {
+  return `staff-role-${String(staffId).replace(/_/g, "-")}`;
 }
 
 function scoreRespiration(rr) {
@@ -934,9 +952,75 @@ function patientFromForm(form) {
   };
 }
 
+function patientPatchFromData(data) {
+  return {
+    name: data.name?.trim() || "Ny patient",
+    sex: data.sex,
+    age: parseNumber(data.age) || 0,
+    complaint: data.complaint?.trim() || "Ej angivet",
+    history: data.history?.trim() || "",
+    vitals: {
+      rr: parseNumber(data.rr),
+      sat: parseNumber(data.sat),
+      oxygen: data.oxygen === "true",
+      temp: parseNumber(data.temp),
+      sbp: parseNumber(data.sbp),
+      pulse: parseNumber(data.pulse),
+      consciousness: data.consciousness || "Alert",
+    },
+    statusFindings: {
+      at: data.at || "",
+      heart: data.heart || "",
+      lungs: data.lungs || "",
+      abdomen: data.abdomen || "",
+      neuro: data.neuro || "",
+      skin: data.skin || "",
+      pain: data.pain || "",
+      otherStatus: data.otherStatus || "",
+    },
+    labs: {
+      hb: data.hb || "",
+      wbc: data.wbc || "",
+      platelets: data.platelets || "",
+      crp: data.crp || "",
+      na: data.na || "",
+      k: data.k || "",
+      creatinine: data.creatinine || "",
+      egfr: data.egfr || "",
+      glucose: data.glucose || "",
+      lactate: data.lactate || "",
+      troponin: data.troponin || "",
+      ddimer: data.ddimer || "",
+      liver: data.liver || "",
+      bloodGas: data.bloodGas || "",
+      urine: data.urine || "",
+      otherLab: data.otherLab || "",
+    },
+    manualRisk: data.manualRisk,
+  };
+}
+
 function addPatientFromForm(form) {
   if (!state.account) {
     showLoginRequired();
+    return;
+  }
+
+  if (state.editingPatientId) {
+    const data = serializeForm(form);
+    const patch = patientPatchFromData(data);
+    const editedId = state.editingPatientId;
+    state.editingPatientId = "";
+    updatePatient(editedId, (patient) => ({
+      ...patient,
+      ...patch,
+      flowStatus: patient.flowStatus,
+      mapPosition: patient.mapPosition,
+      recommendations: patient.recommendations || [],
+      staffInteractions: patient.staffInteractions || [],
+    }));
+    form.reset();
+    openPatientDetail(editedId);
     return;
   }
 
@@ -959,6 +1043,73 @@ function addPatientFromForm(form) {
   openPatientDetail(nextPatient.id);
 }
 
+function setFormValue(name, value) {
+  const field = elements.patientForm.elements[name];
+  if (field) field.value = value ?? "";
+}
+
+function fillPatientFormForEdit(patient) {
+  const vitals = patient.vitals || {};
+  const status = patient.statusFindings || {};
+  const labs = patient.labs || {};
+  setFormValue("name", patient.name);
+  setFormValue("sex", patient.sex);
+  setFormValue("age", patient.age);
+  setFormValue("complaint", patient.complaint);
+  setFormValue("history", patient.history);
+  setFormValue("manualRisk", patient.manualRisk || "");
+  setFormValue("rr", vitals.rr ?? "");
+  setFormValue("sat", vitals.sat ?? "");
+  setFormValue("oxygen", vitals.oxygen ? "true" : "false");
+  setFormValue("temp", vitals.temp ?? "");
+  setFormValue("sbp", vitals.sbp ?? "");
+  setFormValue("pulse", vitals.pulse ?? "");
+  setFormValue("consciousness", vitals.consciousness || "Alert");
+  setFormValue("at", status.at);
+  setFormValue("heart", status.heart);
+  setFormValue("lungs", status.lungs);
+  setFormValue("abdomen", status.abdomen);
+  setFormValue("neuro", status.neuro);
+  setFormValue("skin", status.skin);
+  setFormValue("pain", status.pain);
+  setFormValue("otherStatus", status.otherStatus);
+  setFormValue("hb", labs.hb);
+  setFormValue("wbc", labs.wbc);
+  setFormValue("platelets", labs.platelets);
+  setFormValue("crp", labs.crp);
+  setFormValue("na", labs.na);
+  setFormValue("k", labs.k);
+  setFormValue("creatinine", labs.creatinine);
+  setFormValue("egfr", labs.egfr);
+  setFormValue("glucose", labs.glucose);
+  setFormValue("lactate", labs.lactate);
+  setFormValue("troponin", labs.troponin);
+  setFormValue("ddimer", labs.ddimer);
+  setFormValue("liver", labs.liver);
+  setFormValue("bloodGas", labs.bloodGas);
+  setFormValue("urine", labs.urine);
+  setFormValue("otherLab", labs.otherLab);
+}
+
+function openEditPatient(patientId) {
+  const patient = state.patients.find((item) => item.id === patientId);
+  if (!patient) return;
+  state.editingPatientId = patientId;
+  elements.patientForm.reset();
+  fillPatientFormForEdit(patient);
+  elements.patientModal.showModal();
+}
+
+function openEditPatientField(patientId, fieldName) {
+  openEditPatient(patientId);
+  window.setTimeout(() => {
+    const field = elements.patientForm.elements[fieldName];
+    if (!field) return;
+    field.focus();
+    field.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, 80);
+}
+
 function renderLegend() {
   elements.sceneLegend.innerHTML = [
     ["red", "Röd akut"],
@@ -975,6 +1126,9 @@ function renderLegend() {
 function renderStats() {
   const active = state.patients.filter((patient) => !["home", "closed"].includes(patient.flowStatus)).length;
   const overdue = state.patients.filter(patientHasOverdue).length;
+  const near = state.patients.filter((patient) => patient.flowStatus === "near").length;
+  const timers = state.patients.reduce((sum, patient) => sum + activeTimers(patient).length, 0);
+  const highNews = state.patients.filter((patient) => (patient.analysis?.news?.total || 0) >= 5).length;
   const isLoggedIn = Boolean(state.account);
   document.body.classList.toggle("is-locked", !isLoggedIn);
   elements.loginGate.hidden = isLoggedIn;
@@ -984,7 +1138,11 @@ function renderStats() {
   elements.accountLabel.textContent = isLoggedIn ? state.account : "Logga in krävs";
   elements.emailInput.value = isLoggedIn ? state.account : "";
   elements.activeCount.textContent = active;
-  elements.overdueCount.textContent = overdue;
+  if (elements.nearCount) elements.nearCount.textContent = near;
+  if (elements.timerCount) elements.timerCount.textContent = timers;
+  if (elements.highNewsCount) elements.highNewsCount.textContent = highNews;
+  if (elements.overdueCount) elements.overdueCount.textContent = overdue;
+  document.body.classList.toggle("has-overdue", overdue > 0);
 }
 
 function avatarPosition(patient, zoneIndex, zoneCount) {
@@ -994,10 +1152,70 @@ function avatarPosition(patient, zoneIndex, zoneCount) {
   const index = zoneIndex + 1;
   const jitter = (patient.id.charCodeAt(patient.id.length - 1) % 7) - 3;
 
+  if (zone === "ambulance") return { x: 51 + jitter * 0.4, y: 59 + (index % 2) * 7 };
+  if (zone === "waiting") return { x: 18 + (index % 4) * 6 + jitter, y: 79 + Math.floor(index / 4) * 7 };
   if (zone === "acute") return { x: 18 + (index % 3) * 8 + jitter, y: 32 + Math.floor(index / 3) * 17 };
   if (zone === "monitoring") return { x: 46 + (index % 4) * 7 + jitter, y: 28 + Math.floor(index / 4) * 16 };
   if (zone === "near") return { x: 75 + (index % 3) * 7 + jitter, y: 34 + Math.floor(index / 3) * 17 };
   return { x: 83 + (index % 3) * 5 + jitter, y: 78 + Math.floor(index / 3) * 8 };
+}
+
+function patientDisplayCode(patient) {
+  const prefix = normalize(patient.name || patient.complaint || "p").replace(/[^a-z0-9]/g, "").slice(0, 1).toUpperCase() || "P";
+  const seed = patient.id.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return `${prefix}-${100 + (seed % 900)}`;
+}
+
+function patientAvatarProfile(patient) {
+  const age = parseNumber(patient.age);
+  const sex = normalize(patient.sex || "");
+  const lifeStage = age !== null && age < 13 ? "child" : age !== null && age < 18 ? "teen" : age !== null && age >= 75 ? "elderly" : "adult";
+  const gender = sex === "kvinna" ? "woman" : sex === "man" ? "man" : "neutral";
+
+  const scrubByStage = {
+    child: "#34d399",
+    teen: "#38bdf8",
+    adult: "#2f80ed",
+    elderly: "#a3a3a3",
+  };
+  const accentByGender = {
+    woman: "#f472b6",
+    man: "#2563eb",
+    neutral: "#22a06b",
+  };
+
+  return {
+    lifeStage,
+    gender,
+    scale: lifeStage === "child" ? 0.76 : lifeStage === "teen" ? 0.9 : lifeStage === "elderly" ? 0.94 : 1,
+    scrub: gender === "woman" ? "#ec4899" : scrubByStage[lifeStage],
+    accent: accentByGender[gender],
+  };
+}
+
+function patientConditionTheme(patient, flags = symptomFlags(patient)) {
+  const labs = patient.labs || {};
+  const vitals = patient.vitals || {};
+  const text = normalize([patient.complaint, patient.history, patient.statusFindings?.abdomen, patient.statusFindings?.otherStatus].join(" "));
+  const sat = parseNumber(vitals.sat);
+  const creatinine = parseNumber(labs.creatinine);
+  const egfr = parseNumber(labs.egfr);
+  const hb = parseNumber(labs.hb);
+  const platelets = parseNumber(labs.platelets);
+
+  const pregnancyMentioned = /gravid|pregnan/.test(text) && !/(ej|inte|icke)\s+gravid/.test(text);
+  if (pregnancyMentioned) return "pregnant";
+  if (flags.chestPain || parseNumber(labs.troponin) > 40) return "cardiac";
+  if (flags.dyspnea || (sat !== null && sat <= 94)) return "respiratory";
+  if (flags.neuro || (vitals.consciousness && normalize(vitals.consciousness) !== "alert")) return "neuro";
+  if (flags.abdomen) return "abdominal";
+  if (flags.trauma) return "trauma";
+  if ((creatinine !== null && creatinine > 150) || (egfr !== null && egfr < 45)) return "renal";
+  if ((hb !== null && hb < 90) || (platelets !== null && platelets < 100)) return "blood";
+  if (flags.infection || parseNumber(labs.crp) > 80 || parseNumber(labs.lactate) >= 2.5) return "infection";
+  if (/allerg|anafyl/.test(text)) return "allergy";
+  if (/intox|overdos|gift/.test(text)) return "toxic";
+  return "general";
 }
 
 function avatarStyle(patient) {
@@ -1011,7 +1229,8 @@ function avatarStyle(patient) {
   const seed = patient.id.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
   const [skin, scrub, dark] = palettes[seed % palettes.length];
   const visual = clinicalVisual(patient);
-  return `--avatar-skin:${visual.skin || skin}; --avatar-scrub:${scrub}; --avatar-dark:${dark}; --wellness:${visual.wellness}%;`;
+  const profile = patientAvatarProfile(patient);
+  return `--avatar-skin:${visual.skin || skin}; --avatar-scrub:${profile.scrub || scrub}; --avatar-dark:${dark}; --avatar-accent:${profile.accent}; --avatar-scale:${profile.scale}; --wellness:${visual.wellness}%;`;
 }
 
 function clinicalVisual(patient) {
@@ -1025,17 +1244,33 @@ function clinicalVisual(patient) {
   const lactate = parseNumber(labs.lactate);
   const troponin = parseNumber(labs.troponin);
   const flow = patient.flowStatus || "";
-  let symptom = "🩺";
+  let symptom = "&#129658;";
   let condition = `condition-${risk}`;
   let skin = "";
   let posture = "standing";
 
-  if (flags.chestPain || troponin > 40) symptom = "❤️";
-  if (flags.abdomen) symptom = "🤢";
-  if (flags.dyspnea || sat <= 94) symptom = "🫁";
-  if (flags.infection || temp >= 38 || crp > 80) symptom = "🔥";
-  if (flags.neuro) symptom = "🧠";
-  if (flags.trauma) symptom = "🦴";
+  if (flags.chestPain || troponin > 40) symptom = "&#10084;&#65039;";
+  if (flags.abdomen) symptom = "&#129314;";
+  if (flags.dyspnea || (sat !== null && sat <= 94)) symptom = "&#129729;";
+  if (flags.infection || (temp !== null && temp >= 38) || crp > 80) symptom = "&#128293;";
+  if (flags.neuro) symptom = "&#129504;";
+  if (flags.trauma) symptom = "&#129460;";
+  const theme = patientConditionTheme(patient, flags);
+  const symptomByTheme = {
+    cardiac: "❤️",
+    respiratory: "🫁",
+    abdominal: "🤢",
+    infection: "🔥",
+    neuro: "🧠",
+    trauma: "🦴",
+    renal: "💧",
+    blood: "🩸",
+    allergy: "⚠️",
+    toxic: "💊",
+    pregnant: "🤰",
+    general: "🩺",
+  };
+  symptom = symptomByTheme[theme] || symptom;
 
   if (sat !== null && sat <= 92) {
     condition = "condition-cyanotic";
@@ -1048,21 +1283,23 @@ function clinicalVisual(patient) {
     skin = "#d8c4ad";
   }
 
-  if (flow === "acute" || risk === "red") posture = "bed";
+  if (flow === "ambulance") posture = "bed";
+  else if (flow === "waiting") posture = "waiting";
+  else if (flow === "acute" || risk === "red") posture = "bed";
   else if (flow === "near" || flow === "consulted") posture = "chair";
   else if (flow === "home" || flow === "closed") posture = "home";
   else if (risk === "yellow") posture = "waiting";
 
   const wellnessByRisk = { green: 24, yellow: 48, orange: 72, red: 96 };
-  const wellness = Math.min(100, Math.max(12, wellnessByRisk[risk] + (sat <= 92 ? 12 : 0) + (temp >= 38.5 ? 10 : 0)));
-  return { symptom, condition, skin, posture, wellness };
+  const wellness = Math.min(100, Math.max(12, wellnessByRisk[risk] + (sat !== null && sat <= 92 ? 12 : 0) + (temp !== null && temp >= 38.5 ? 10 : 0)));
+  return { symptom, condition, skin, posture, wellness, theme };
 }
 
 function renderStaffDock() {
   elements.staffDock.innerHTML = staffTeam
     .map((staff) => `
       <button
-        class="staff-token ${state.activeStaffId === staff.id ? "selected" : ""}"
+        class="staff-token ${staffRoleClass(staff.id)} ${state.activeStaffId === staff.id ? "selected" : ""}"
         data-staff-id="${staff.id}"
         style="--staff-color:${staff.color};"
         type="button"
@@ -1070,6 +1307,7 @@ function renderStaffDock() {
       >
         <span class="staff-head"></span>
         <span class="staff-body"></span>
+        <span class="staff-tool"></span>
         <strong>${escapeHtml(staff.short)}</strong>
         <small>${escapeHtml(staff.label)}</small>
       </button>
@@ -1079,38 +1317,92 @@ function renderStaffDock() {
   elements.staffDock.querySelectorAll("[data-staff-id]").forEach((button) => bindStaffToken(button));
 }
 
+function renderMapStaffAssignments(placements) {
+  const byPatientId = new Map(placements.map((item) => [item.patient.id, item.position]));
+  return state.patients
+    .flatMap((patient) => {
+      const position = byPatientId.get(patient.id);
+      if (!position) return [];
+      return (patient.staffInteractions || [])
+        .filter((item) => !item.completed)
+        .slice(0, 2)
+        .map((item, index) => {
+          const staff = staffTeam.find((member) => member.id === item.staffId);
+          if (!staff) return "";
+          const x = Math.min(96, Math.max(5, position.x + 5 + index * 4));
+          const y = Math.min(96, Math.max(5, position.y - 8 - index * 5));
+          const isReviewDue = item.reviewDueAt && item.reviewDueAt <= state.now;
+          return `
+            <button
+              class="map-staff-avatar ${staffRoleClass(staff.id)} ${isReviewDue ? "needs-review" : "en-route"}"
+              data-map-staff-id="${item.id}"
+              data-staff-patient-id="${patient.id}"
+              style="left:${x}%; top:${y}%; --target-x:${x}%; --target-y:${y}%; --staff-color:${staff.color};"
+              type="button"
+              title="${escapeHtml(staff.label)}: ${escapeHtml(item.task || staff.timer)}"
+            >
+              <span class="staff-head"></span>
+              <span class="staff-body"></span>
+              <span class="staff-tool"></span>
+              <small>${escapeHtml(staff.short)}</small>
+              ${isReviewDue ? `<b>Stäm av</b>` : ""}
+            </button>
+          `;
+        });
+    })
+    .join("");
+}
+
 function renderAvatars() {
-  const zoneIndexes = { acute: 0, monitoring: 0, near: 0, home: 0 };
-  elements.avatarLayer.innerHTML = state.patients
-    .map((patient) => {
+  const zoneIndexes = { ambulance: 0, waiting: 0, acute: 0, monitoring: 0, near: 0, home: 0 };
+  const placements = state.patients.map((patient) => {
       const zone = getPatientZone(patient);
       const position = avatarPosition(patient, zoneIndexes[zone] || 0, state.patients.length);
       zoneIndexes[zone] = (zoneIndexes[zone] || 0) + 1;
+      return { patient, zone, position };
+    });
+
+  const patientMarkup = placements
+    .map(({ patient, position }) => {
       const risk = patient.analysis.risk;
       const overdue = patientHasOverdue(patient);
       const nextTimer = nextTimerInfo(patient);
       const visual = clinicalVisual(patient);
+      const profile = patientAvatarProfile(patient);
       const selected = state.selectedPatientId === patient.id ? " selected" : "";
       return `
         <button
-          class="patient-avatar risk-${risk} posture-${visual.posture} ${visual.condition}${overdue ? " overdue" : ""}${selected}"
+          class="patient-avatar risk-${risk} avatar-${profile.lifeStage} avatar-${profile.gender} theme-${visual.theme} posture-${visual.posture} ${visual.condition}${overdue ? " overdue" : ""}${selected}"
           data-patient-id="${patient.id}"
           style="left:${position.x}%; top:${position.y}%; ${avatarStyle(patient)}"
           title="${escapeHtml(patient.name)} - NEWS ${patient.analysis.news.total}"
           type="button"
         >
+          <span class="patient-callout">
+            <span class="callout-top">
+              <strong>${escapeHtml(patientDisplayCode(patient))}</strong>
+              ${nextTimer ? `<em>${escapeHtml(nextTimer.label)}</em>` : ""}
+            </span>
+            <span>${escapeHtml(patient.age)} år</span>
+            <p><i>${visual.symptom}</i>${escapeHtml(patient.complaint || "Ej angivet")}</p>
+          </span>
           ${nextTimer ? `<span class="avatar-timer ${nextTimer.timerState}">${escapeHtml(nextTimer.label)}</span>` : ""}
           <span class="avatar-symptom">${visual.symptom}</span>
           <span class="avatar-clinical-meter"><i></i></span>
           <span class="avatar-support"><i></i></span>
           <span class="avatar-alert-ring"></span>
-          <span class="avatar-head"></span>
-          <span class="avatar-hair"></span>
-          <span class="avatar-body"></span>
-          <span class="avatar-arm left"></span>
-          <span class="avatar-arm right"></span>
-          <span class="avatar-leg left"></span>
-          <span class="avatar-leg right"></span>
+          <span class="avatar-head voxel-cube">
+            <i class="cube-top"></i>
+            <i class="cube-side"></i>
+            <b class="eye left"></b>
+            <b class="eye right"></b>
+          </span>
+          <span class="avatar-hair voxel-cube"><i class="cube-top"></i><i class="cube-side"></i></span>
+          <span class="avatar-body voxel-cube"><i class="cube-top"></i><i class="cube-side"></i><b class="chest-mark"></b></span>
+          <span class="avatar-arm left voxel-limb"><i></i></span>
+          <span class="avatar-arm right voxel-limb"><i></i></span>
+          <span class="avatar-leg left voxel-limb"><i></i></span>
+          <span class="avatar-leg right voxel-limb"><i></i></span>
           <span class="avatar-shadow"></span>
           <small>${escapeHtml(patient.name.replace(/^Patient\s*/i, ""))}</small>
         </button>
@@ -1118,8 +1410,18 @@ function renderAvatars() {
     })
     .join("");
 
-  elements.avatarLayer.querySelectorAll("[data-patient-id]").forEach((button) => {
+  elements.avatarLayer.innerHTML = patientMarkup + renderMapStaffAssignments(placements);
+
+  elements.avatarLayer.querySelectorAll(".patient-avatar[data-patient-id]").forEach((button) => {
     bindPatientAvatar(button);
+  });
+
+  elements.avatarLayer.querySelectorAll("[data-map-staff-id]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openPatientDetail(button.dataset.staffPatientId);
+      focusPatient(button.dataset.staffPatientId);
+    });
   });
 }
 
@@ -1137,8 +1439,11 @@ function bindPatientAvatar(button) {
   let startY = 0;
   let dragging = false;
 
+  button.addEventListener("contextmenu", (event) => event.preventDefault());
+
   button.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 && event.button !== 2) return;
+    event.preventDefault();
     startX = event.clientX;
     startY = event.clientY;
     dragging = false;
@@ -1189,14 +1494,18 @@ function bindStaffToken(button) {
   let startY = 0;
   let dragging = false;
 
+  button.addEventListener("contextmenu", (event) => event.preventDefault());
+
   button.addEventListener("click", () => {
     if (button.dataset.dragged === "true") return;
+    if (promptStaffAssignment(button.dataset.staffId)) return;
     state.activeStaffId = state.activeStaffId === button.dataset.staffId ? "" : button.dataset.staffId;
     renderStaffDock();
   });
 
   button.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 && event.button !== 2) return;
+    event.preventDefault();
     startX = event.clientX;
     startY = event.clientY;
     dragging = false;
@@ -1229,6 +1538,28 @@ function bindStaffToken(button) {
   });
 }
 
+function promptStaffAssignment(staffId) {
+  const staff = staffTeam.find((item) => item.id === staffId);
+  if (!staff || !state.patients.length) return false;
+
+  const options = state.patients
+    .map((patient, index) => `${index + 1}. ${patientDisplayCode(patient)} ${patient.name} - ${patient.complaint}`)
+    .join("\n");
+  const choice = window.prompt(`${staff.label}: välj patientnummer för uppdrag.\n\n${options}\n\nAvbryt för att bara markera personalen och klicka/dra själv.`);
+  if (!choice) return false;
+
+  const selectedIndex = Number.parseInt(choice, 10) - 1;
+  const patient = state.patients[selectedIndex];
+  if (!patient) {
+    window.alert("Hittade ingen patient med det numret.");
+    return false;
+  }
+
+  const task = window.prompt(`Vad ska ${staff.label} göra hos ${patient.name}?`, staff.timer) || staff.timer;
+  assignStaffToPatient(staff.id, patient.id, task);
+  return true;
+}
+
 function nearestPatientFromPointer(clientX, clientY) {
   let best = { id: "", distance: Infinity };
   elements.avatarLayer.querySelectorAll("[data-patient-id]").forEach((avatar) => {
@@ -1241,19 +1572,24 @@ function nearestPatientFromPointer(clientX, clientY) {
   return best.distance < 130 ? best.id : "";
 }
 
-function assignStaffToPatient(staffId, patientId) {
+function assignStaffToPatient(staffId, patientId, taskText = "") {
   const staff = staffTeam.find((item) => item.id === staffId);
   if (!staff) return;
+  const task = taskText.trim() || staff.timer;
   const interaction = {
     id: generateId("staff"),
     staffId: staff.id,
     label: staff.label,
+    task,
+    status: "På väg",
+    completed: false,
     createdAt: Date.now(),
-    note: `${staff.label} kopplad till patienten`,
+    reviewDueAt: Date.now() + staff.minutes * 60000,
+    note: `${staff.label} är skickad till patienten för: ${task}. Stäm av när uppgiften är utförd.`,
   };
   const recommendation = {
     id: generateId("rec"),
-    text: `Konsultation: ${staff.timer}`,
+    text: `Konsultation: ${task}`,
     category: "Konsultation",
     status: "Pågår",
     completed: false,
@@ -1268,6 +1604,39 @@ function assignStaffToPatient(staffId, patientId) {
     flowStatus: staff.id === "surgeon" ? "consulted" : patient.flowStatus,
   }));
   openPatientDetail(patientId);
+}
+
+function updateStaffInteraction(patientId, interactionId, result) {
+  const isDone = result === "done";
+  updatePatient(patientId, (patient) => {
+    const interaction = (patient.staffInteractions || []).find((item) => item.id === interactionId);
+    const followUp = !isDone && interaction
+      ? {
+          id: generateId("rec"),
+          text: `Följ upp: ${interaction.label} kunde inte bekräfta ${interaction.task || "uppgiften"}`,
+          category: "Konsultation",
+          status: "Ej påbörjad",
+          completed: false,
+          dueAt: Date.now() + 10 * 60000,
+        }
+      : null;
+
+    return {
+      ...patient,
+      staffInteractions: (patient.staffInteractions || []).map((item) =>
+        item.id === interactionId
+          ? {
+              ...item,
+              completed: true,
+              status: isDone ? "Klar" : "Ej utförd",
+              resolvedAt: Date.now(),
+              note: `${item.note} Avstämt: ${isDone ? "utfört" : "ej utfört, behöver följas upp"}.`,
+            }
+          : item
+      ),
+      recommendations: followUp ? [followUp, ...(patient.recommendations || [])] : patient.recommendations || [],
+    };
+  });
 }
 
 function focusPatient(patientId) {
@@ -1287,7 +1656,7 @@ function labBadges(patient, limit = 3) {
   if (!abnormalities.length) return `<span class="quiet">Inga tydliga labbavvikelser</span>`;
   return abnormalities
     .slice(0, limit)
-    .map((item) => `<span class="lab-badge severity-${item.severity}">${escapeHtml(item.label)} ${escapeHtml(item.value)}${infoIcon(item.key)}</span>`)
+    .map((item) => `<span class="lab-badge severity-${item.severity}">${escapeHtml(item.label)} ${escapeHtml(item.value)}${infoIcon(item.key)}${editIcon(item.key)}</span>`)
     .join("");
 }
 
@@ -1366,7 +1735,7 @@ function renderNewsBreakdown(patient) {
   return patient.analysis.news.parts
     .map((part) => `
       <div class="news-part">
-        <span>${escapeHtml(part.id)}${infoIcon(newsInfoKey(part.id))}</span>
+        <span>${escapeHtml(part.id)}${infoIcon(newsInfoKey(part.id))}${editIcon(newsInfoKey(part.id))}</span>
         <strong>${escapeHtml(part.value ?? "-")}</strong>
         <i>${part.score} p</i>
       </div>
@@ -1443,10 +1812,20 @@ function renderStaffInteractions(patient) {
 
   return interactions
     .map((item) => `
-      <div class="staff-interaction-row">
-        <strong>${escapeHtml(item.label)}</strong>
-        <span>${formatClock(item.createdAt)}</span>
+      <div class="staff-interaction-row ${item.completed ? "completed" : "needs-review"}">
+        <div>
+          <strong>${escapeHtml(item.label)}</strong>
+          <span>${escapeHtml(item.status || "Pågår")} · ${formatClock(item.createdAt)}</span>
+        </div>
         <p>${escapeHtml(item.note)}</p>
+        ${
+          item.completed
+            ? `<small>Avstämt ${item.resolvedAt ? formatClock(item.resolvedAt) : ""}</small>`
+            : `<div class="staff-review-actions">
+                <button type="button" data-staff-check="${item.id}" data-result="done">Utfört</button>
+                <button type="button" data-staff-check="${item.id}" data-result="not-done">Ej utfört</button>
+              </div>`
+        }
       </div>
     `)
     .join("");
@@ -1475,6 +1854,21 @@ function renderPatientDetail(patient) {
       <select class="wide-select" id="flowStatusSelect">
         ${flowStatuses.map((item) => `<option value="${item.id}" ${patient.flowStatus === item.id ? "selected" : ""}>${item.label}</option>`).join("")}
       </select>
+      <button class="button primary edit-patient-button" id="editPatientButton" type="button">Redigera patientdata</button>
+    </section>
+
+    <section class="detail-section">
+      <div class="section-title">
+        <h3>Redigerbara basuppgifter</h3>
+        <span>Alla fält kan ändras</span>
+      </div>
+      <div class="editable-summary-grid">
+        <div><span>Namn/ID ${editIcon("name")}</span><strong>${escapeHtml(patient.name)}</strong></div>
+        <div><span>Kön ${editIcon("sex")}</span><strong>${escapeHtml(patient.sex || "Ej valt")}</strong></div>
+        <div><span>Ålder ${infoIcon("age")}${editIcon("age")}</span><strong>${escapeHtml(patient.age)}</strong></div>
+        <div><span>Sökorsak ${editIcon("complaint")}</span><strong>${escapeHtml(patient.complaint || "Ej angivet")}</strong></div>
+        <div class="wide"><span>Kort anamnes ${editIcon("history")}</span><strong>${escapeHtml(patient.history || "Ingen anamnes angiven")}</strong></div>
+      </div>
     </section>
 
     <section class="detail-section danger-section">
@@ -1540,14 +1934,31 @@ function renderPatientDetail(patient) {
       <div class="status-grid">
         ${Object.entries(patient.statusFindings || {})
           .filter(([, value]) => value)
-          .map(([key, value]) => `<div><span>${escapeHtml(key)}</span><strong>${escapeHtml(value)}</strong></div>`)
+          .map(([key, value]) => `<div><span>${escapeHtml(key)}${editIcon(key)}</span><strong>${escapeHtml(value)}</strong></div>`)
           .join("")}
       </div>
     </section>
   `;
 
   elements.patientDetail.querySelector("#flowStatusSelect").addEventListener("change", (event) => {
-    updatePatient(patient.id, (next) => ({ ...next, flowStatus: event.target.value }));
+    updatePatient(patient.id, (next) => ({ ...next, flowStatus: event.target.value, mapPosition: null }));
+  });
+
+  elements.patientDetail.querySelector("#editPatientButton").addEventListener("click", () => {
+    openEditPatient(patient.id);
+  });
+
+  elements.patientDetail.querySelectorAll("[data-edit-field]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openEditPatientField(patient.id, button.dataset.editField);
+    });
+  });
+
+  elements.patientDetail.querySelectorAll("[data-staff-check]").forEach((button) => {
+    button.addEventListener("click", () => {
+      updateStaffInteraction(patient.id, button.dataset.staffCheck, button.dataset.result);
+    });
   });
 
   elements.patientDetail.querySelector("#deletePatientButton").addEventListener("click", () => {
@@ -1814,16 +2225,41 @@ function bindEvents() {
       return;
     }
 
+    state.editingPatientId = "";
     elements.patientForm.reset();
     fillFormFromDraft();
     elements.patientModal.showModal();
   });
 
-  elements.closePatientModal.addEventListener("click", () => elements.patientModal.close());
-  elements.cancelPatient.addEventListener("click", () => elements.patientModal.close());
+  elements.closePatientModal.addEventListener("click", () => {
+    state.editingPatientId = "";
+    elements.patientModal.close();
+  });
+  elements.cancelPatient.addEventListener("click", () => {
+    state.editingPatientId = "";
+    elements.patientModal.close();
+  });
   elements.closeDrawer.addEventListener("click", closePatientDetail);
   elements.detailDrawer.addEventListener("click", (event) => {
     if (event.target === elements.detailDrawer) closePatientDetail();
+  });
+
+  elements.hospitalMap.addEventListener("click", (event) => {
+    if (
+      !state.selectedPatientId ||
+      event.target.closest("[data-patient-id]") ||
+      event.target.closest("[data-staff-id]") ||
+      event.target.closest("[data-map-staff-id]")
+    ) {
+      return;
+    }
+    const position = pointerToMapPosition(event);
+    const zone = getZoneFromPosition(position);
+    updatePatient(state.selectedPatientId, (patient) => ({
+      ...patient,
+      mapPosition: position,
+      flowStatus: flowStatusFromZone(zone),
+    }));
   });
 
   elements.riskFilter.addEventListener("change", (event) => {
