@@ -2718,6 +2718,7 @@ body {
   background-size: auto, 38px 38px, 38px 38px, auto;
   border-radius: 8px;
   perspective: 1300px;
+  touch-action: pan-y;
 }
 
 .hospital-map {
@@ -2726,6 +2727,7 @@ body {
   transform: rotateX(55deg) rotateZ(-37deg) scale(0.88) !important;
   transform-origin: 50% 54%;
   overflow: visible;
+  touch-action: none;
 }
 
 .hospital-map.is-focused {
@@ -2860,6 +2862,10 @@ body {
   pointer-events: auto;
   transform-style: preserve-3d;
   filter: drop-shadow(0 20px 16px rgba(0, 0, 0, 0.34));
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
 }
 
 .patient-avatar {
@@ -3680,5 +3686,168 @@ body {
   .legend-item {
     padding: 6px 8px;
     border-right: 0;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 760px) {
+  .hospital-viewport {
+    min-height: 610px;
+    padding: 10px;
+  }
+
+  .hospital-map {
+    left: 50%;
+    width: 980px !important;
+    height: 620px !important;
+    margin-left: -490px !important;
+    transform: rotateX(54deg) rotateZ(-37deg) scale(0.62) !important;
+    transform-origin: 47% 42%;
+  }
+
+  .hospital-map.is-focused {
+    transform: rotateX(54deg) rotateZ(-37deg) scale(0.69) !important;
+  }
+
+  .patient-avatar {
+    transform: translate(-50%, -50%) rotateZ(37deg) rotateX(-55deg) translateZ(190px) scale(calc(var(--avatar-scale, 1) * 0.78)) !important;
+  }
+
+  .staff-dock {
+    left: 42% !important;
+    bottom: 6% !important;
+    transform: rotateZ(37deg) rotateX(-55deg) translateZ(205px) scale(0.72) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .brand-block {
+    align-items: flex-start;
+  }
+
+  .brand-mark {
+    width: 46px;
+    height: 46px;
+  }
+
+  .brand-block h1 {
+    font-size: 1.62rem;
+  }
+
+  .brand-block p {
+    font-size: 0.82rem;
+  }
+
+  .account-form {
+    padding: 8px;
+    gap: 7px;
+  }
+
+  .account-form input,
+  .account-form button {
+    min-height: 38px;
+  }
+
+  .status-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .status-strip > div {
+    min-height: 62px;
+    padding: 9px 10px;
+  }
+
+  .status-strip strong {
+    font-size: 1.24rem;
+  }
+
+  .status-strip .label {
+    font-size: 0.64rem;
+    line-height: 1.05;
+  }
+
+  .stat-icon {
+    font-size: 1rem;
+  }
+
+  .scene-panel {
+    min-height: 560px;
+  }
+
+  .scene-head > div:first-child {
+    position: relative;
+    inset: auto;
+    margin-bottom: 8px;
+    padding: 9px 10px;
+  }
+
+  .hospital-viewport {
+    min-height: 500px;
+    padding: 6px;
+    overflow: hidden;
+  }
+
+  .hospital-map {
+    left: 50%;
+    width: 940px !important;
+    height: 600px !important;
+    margin-left: -470px !important;
+    transform: rotateX(54deg) rotateZ(-37deg) scale(0.46) !important;
+    transform-origin: 47% 42%;
+  }
+
+  .hospital-map.is-focused {
+    transform: rotateX(54deg) rotateZ(-37deg) scale(0.52) !important;
+  }
+
+  .patient-avatar {
+    width: 70px !important;
+    height: 96px !important;
+    transform: translate(-50%, -50%) rotateZ(37deg) rotateX(-55deg) translateZ(190px) scale(calc(var(--avatar-scale, 1) * 0.68)) !important;
+  }
+
+  .patient-callout {
+    width: 126px;
+    top: -90px;
+    padding: 7px 8px 10px;
+  }
+
+  .patient-callout p {
+    font-size: 0.64rem;
+  }
+
+  .avatar-symptom {
+    transform: translateX(-50%) scale(0.86);
+  }
+
+  .staff-dock {
+    left: 39% !important;
+    bottom: 3% !important;
+    min-width: 330px;
+    transform: rotateZ(37deg) rotateX(-55deg) translateZ(205px) scale(0.62) !important;
+  }
+
+  .scene-legend {
+    grid-template-columns: 1fr;
+    max-height: 132px;
+    overflow: auto;
+  }
+
+  .legend-item i {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .hospital-map {
+    transform: rotateX(55deg) rotateZ(-37deg) scale(0.92) !important;
+  }
+
+  .hospital-map.is-focused {
+    transform: rotateX(55deg) rotateZ(-37deg) scale(1) !important;
   }
 }

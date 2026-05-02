@@ -342,13 +342,15 @@ function getPatientZone(patient) {
 
 function getZoneFromPosition(position) {
   if (!position) return "";
-  if (position.x >= 44 && position.x <= 59 && position.y >= 56 && position.y <= 70) return "ambulance";
-  if (position.x >= 8 && position.x <= 36 && position.y >= 68) return "waiting";
-  if (position.y >= 72 && position.x >= 66) return "home";
-  if (position.y >= 66) return "monitoring";
-  if (position.x < 32) return "acute";
-  if (position.x < 67) return "monitoring";
-  return "near";
+  const { x, y } = position;
+  if (x >= 38 && x <= 55 && y >= 58 && y <= 75) return "ambulance";
+  if (x >= 77 && x <= 96 && y >= 47 && y <= 70) return "waiting";
+  if (x >= 79 && x <= 98 && y >= 49 && y <= 76) return "home";
+  if (x >= 2 && x <= 35 && y >= 28 && y <= 82) return "acute";
+  if (x >= 65 && x <= 98 && y >= 3 && y <= 48) return "near";
+  if (x >= 27 && x <= 71 && y >= 5 && y <= 64) return "monitoring";
+  if (x >= 35 && x <= 82 && y >= 56 && y <= 90) return "monitoring";
+  return "monitoring";
 }
 
 function flowStatusFromZone(zone) {
@@ -1152,12 +1154,12 @@ function avatarPosition(patient, zoneIndex, zoneCount) {
   const index = zoneIndex + 1;
   const jitter = (patient.id.charCodeAt(patient.id.length - 1) % 7) - 3;
 
-  if (zone === "ambulance") return { x: 51 + jitter * 0.4, y: 59 + (index % 2) * 7 };
-  if (zone === "waiting") return { x: 18 + (index % 4) * 6 + jitter, y: 79 + Math.floor(index / 4) * 7 };
-  if (zone === "acute") return { x: 18 + (index % 3) * 8 + jitter, y: 32 + Math.floor(index / 3) * 17 };
-  if (zone === "monitoring") return { x: 46 + (index % 4) * 7 + jitter, y: 28 + Math.floor(index / 4) * 16 };
-  if (zone === "near") return { x: 75 + (index % 3) * 7 + jitter, y: 34 + Math.floor(index / 3) * 17 };
-  return { x: 83 + (index % 3) * 5 + jitter, y: 78 + Math.floor(index / 3) * 8 };
+  if (zone === "ambulance") return { x: 43 + (index % 2) * 7 + jitter * 0.35, y: 66 + Math.floor(index / 2) * 4 };
+  if (zone === "waiting") return { x: 83 + (index % 3) * 5 + jitter * 0.3, y: 57 + Math.floor(index / 3) * 6 };
+  if (zone === "acute") return { x: 12 + (index % 3) * 7 + jitter * 0.35, y: 48 + Math.floor(index / 3) * 12 };
+  if (zone === "monitoring") return { x: 39 + (index % 4) * 7 + jitter * 0.35, y: 28 + Math.floor(index / 4) * 10 };
+  if (zone === "near") return { x: 76 + (index % 3) * 7 + jitter * 0.3, y: 20 + Math.floor(index / 3) * 10 };
+  return { x: 86 + (index % 3) * 4 + jitter * 0.25, y: 63 + Math.floor(index / 3) * 5 };
 }
 
 function patientDisplayCode(patient) {
@@ -1425,12 +1427,64 @@ function renderAvatars() {
   });
 }
 
-function pointerToMapPosition(event) {
-  const rect = elements.hospitalMap.getBoundingClientRect();
-  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+function parseTransformOrigin(originText, element) {
+  const [rawX = "50%", rawY = "50%"] = originText.split(" ");
+  const read = (value, size) => {
+    if (value.endsWith("%")) return (parseFloat(value) / 100) * size;
+    if (value === "left" || value === "top") return 0;
+    if (value === "right" || value === "bottom") return size;
+    if (value === "center") return size / 2;
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : size / 2;
+  };
+
   return {
-    x: clamp(((event.clientX - rect.left) / rect.width) * 100, 3, 97),
-    y: clamp(((event.clientY - rect.top) / rect.height) * 100, 3, 97),
+    x: read(rawX, element.offsetWidth),
+    y: read(rawY, element.offsetHeight),
+  };
+}
+
+function transformedLocalPoint(matrix, origin, x, y) {
+  const point = new DOMPoint(x - origin.x, y - origin.y, 0, 1).matrixTransform(matrix);
+  return { x: point.x + origin.x, y: point.y + origin.y };
+}
+
+function pointerToMapPosition(event) {
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const map = elements.hospitalMap;
+  const rect = map.getBoundingClientRect();
+  const style = getComputedStyle(map);
+  const matrix = style.transform && style.transform !== "none" ? new DOMMatrixReadOnly(style.transform) : new DOMMatrixReadOnly();
+  const origin = parseTransformOrigin(style.transformOrigin, map);
+
+  try {
+    const corners = [
+      transformedLocalPoint(matrix, origin, 0, 0),
+      transformedLocalPoint(matrix, origin, map.offsetWidth, 0),
+      transformedLocalPoint(matrix, origin, 0, map.offsetHeight),
+      transformedLocalPoint(matrix, origin, map.offsetWidth, map.offsetHeight),
+    ];
+    const minX = Math.min(...corners.map((point) => point.x));
+    const minY = Math.min(...corners.map((point) => point.y));
+    const layoutLeft = rect.left - minX;
+    const layoutTop = rect.top - minY;
+    const transformedX = event.clientX - layoutLeft;
+    const transformedY = event.clientY - layoutTop;
+    const inverted = matrix.inverse();
+    const local = new DOMPoint(transformedX - origin.x, transformedY - origin.y, 0, 1).matrixTransform(inverted);
+    const x = local.x + origin.x;
+    const y = local.y + origin.y;
+    return {
+      x: clamp((x / map.offsetWidth) * 100, 2, 98),
+      y: clamp((y / map.offsetHeight) * 100, 2, 98),
+    };
+  } catch {
+    // Fallback for older mobile browsers that cannot invert a 3D CSS matrix.
+  }
+
+  return {
+    x: clamp(((event.clientX - rect.left) / rect.width) * 100, 2, 98),
+    y: clamp(((event.clientY - rect.top) / rect.height) * 100, 2, 98),
   };
 }
 
@@ -1452,6 +1506,7 @@ function bindPatientAvatar(button) {
 
   button.addEventListener("pointermove", (event) => {
     if (!button.hasPointerCapture(event.pointerId)) return;
+    event.preventDefault();
     const distance = Math.hypot(event.clientX - startX, event.clientY - startY);
     if (distance < 7 && !dragging) return;
     dragging = true;
@@ -1462,6 +1517,7 @@ function bindPatientAvatar(button) {
   });
 
   button.addEventListener("pointerup", (event) => {
+    event.preventDefault();
     if (button.hasPointerCapture(event.pointerId)) {
       button.releasePointerCapture(event.pointerId);
     }
@@ -1514,6 +1570,7 @@ function bindStaffToken(button) {
 
   button.addEventListener("pointermove", (event) => {
     if (!button.hasPointerCapture(event.pointerId)) return;
+    event.preventDefault();
     const distance = Math.hypot(event.clientX - startX, event.clientY - startY);
     if (distance < 7 && !dragging) return;
     dragging = true;
@@ -1523,6 +1580,7 @@ function bindStaffToken(button) {
   });
 
   button.addEventListener("pointerup", (event) => {
+    event.preventDefault();
     if (button.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId);
     button.classList.remove("is-dragging");
     button.style.removeProperty("--drag-x");
